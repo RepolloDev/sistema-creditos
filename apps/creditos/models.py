@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -35,9 +36,7 @@ class Credito(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.00"))],
     )
-    estado = models.CharField(
-        max_length=20, choices=Estado.choices, default=Estado.APROBADO
-    )
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.APROBADO)
 
     class Meta:
         db_table = "CREDITO"
@@ -82,9 +81,7 @@ class Cuota(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.00"))],
     )
-    estado = models.CharField(
-        max_length=20, choices=Estado.choices, default=Estado.PENDIENTE
-    )
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE)
 
     class Meta:
         db_table = "CUOTA"
@@ -113,9 +110,7 @@ class Contrato(models.Model):
     )
     numero_contrato = models.CharField(max_length=30, unique=True)
     fecha_generacion = models.DateTimeField(auto_now_add=True)
-    estado = models.CharField(
-        max_length=20, choices=Estado.choices, default=Estado.GENERADO
-    )
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.GENERADO)
 
     class Meta:
         db_table = "CONTRATO"

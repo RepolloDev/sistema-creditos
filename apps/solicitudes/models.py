@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -25,9 +26,7 @@ class SolicitudCredito(models.Model):
     plazo_meses = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     destino = models.CharField(max_length=200)
     motivo_rechazo = models.CharField(max_length=300, blank=True, null=True)
-    estado = models.CharField(
-        max_length=20, choices=Estado.choices, default=Estado.REGISTRADA
-    )
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.REGISTRADA)
 
     class Meta:
         db_table = "SOLICITUD_CREDITO"
@@ -61,9 +60,7 @@ class Garantia(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.01"))],
     )
-    estado = models.CharField(
-        max_length=20, choices=Estado.choices, default=Estado.REGISTRADA
-    )
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.REGISTRADA)
 
     class Meta:
         db_table = "GARANTIA"

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import Usuario, Auditoria
+
+from .models import Auditoria, Usuario
 
 
 @admin.register(Usuario)
@@ -10,7 +11,10 @@ class UsuarioAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {"fields": ("login", "password")}),
         ("Información Personal", {"fields": ("nombre_completo", "rol")}),
-        ("Permisos", {"fields": ("activo", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        (
+            "Permisos",
+            {"fields": ("activo", "is_staff", "is_superuser", "groups", "user_permissions")},
+        ),
     )
     search_fields = ("login", "nombre_completo")
     ordering = ("login",)

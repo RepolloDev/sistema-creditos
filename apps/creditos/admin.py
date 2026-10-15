@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Credito, Cuota, Contrato
+
+from .models import Contrato, Credito, Cuota
 
 
 class CuotaInline(admin.TabularInline):
@@ -10,7 +11,14 @@ class CuotaInline(admin.TabularInline):
 
 @admin.register(Credito)
 class CreditoAdmin(admin.ModelAdmin):
-    list_display = ("numero_credito", "solicitud", "monto_aprobado", "saldo_capital", "estado", "fecha_desembolso")
+    list_display = (
+        "numero_credito",
+        "solicitud",
+        "monto_aprobado",
+        "saldo_capital",
+        "estado",
+        "fecha_desembolso",
+    )
     list_filter = ("estado", "fecha_desembolso")
     search_fields = ("numero_credito", "solicitud__cliente__ci", "solicitud__cliente__apellidos")
     inlines = [CuotaInline]
@@ -18,7 +26,14 @@ class CreditoAdmin(admin.ModelAdmin):
 
 @admin.register(Cuota)
 class CuotaAdmin(admin.ModelAdmin):
-    list_display = ("credito", "numero_cuota", "fecha_vencimiento", "monto_cuota", "saldo_cuota", "estado")
+    list_display = (
+        "credito",
+        "numero_cuota",
+        "fecha_vencimiento",
+        "monto_cuota",
+        "saldo_cuota",
+        "estado",
+    )
     list_filter = ("estado", "fecha_vencimiento")
     search_fields = ("credito__numero_credito",)
 

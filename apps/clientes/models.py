@@ -1,6 +1,7 @@
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
-from decimal import Decimal
 
 
 class Cliente(models.Model):

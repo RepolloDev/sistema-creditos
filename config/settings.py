@@ -40,6 +40,8 @@ ALLOWED_HOSTS = [
     for host in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
     if host.strip()
 ]
+if DEBUG and "testserver" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("testserver")
 
 
 # Application definition
@@ -58,6 +60,7 @@ INSTALLED_APPS = [
     "evaluacion",
     "creditos",
     "pagos",
+    "integraciones",
 ]
 
 MIDDLEWARE = [
@@ -154,3 +157,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Custom User Model
 AUTH_USER_MODEL = "usuarios.Usuario"
+
+LOGIN_URL = "usuarios:login"
+LOGIN_REDIRECT_URL = "usuarios:dashboard"
+LOGOUT_REDIRECT_URL = "usuarios:login"

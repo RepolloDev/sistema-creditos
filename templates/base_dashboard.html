@@ -1,0 +1,225 @@
+{% extends "base_root.html" %}
+
+{% block root_body %}
+<div class="d-flex h-100 overflow-hidden bg-white">
+    <!-- ========================================================================= -->
+    <!-- SIDEBAR FIJA IZQUIERDA (240px, Borde derecho 1px solid #000000)           -->
+    <!-- ========================================================================= -->
+    <aside class="d-flex flex-column justify-content-between border-end border-dark bg-white" style="width: 240px; min-width: 240px; height: 100vh; z-index: 1020;">
+        <div class="d-flex flex-column">
+            <!-- Institutional Header -->
+            <div class="p-3 border-bottom border-dark bg-white">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="d-inline-flex align-items-center justify-content-center bg-black text-white fw-bold px-1 py-0" style="font-size: 11px; height: 20px;">
+                        VK
+                    </span>
+                    <span class="fw-bold tracking-tight text-black" style="font-size: 13px; letter-spacing: -0.01em;">
+                        BANCO VOLKSKAS S.A.
+                    </span>
+                </div>
+                <div class="text-uppercase text-secondary fw-semibold" style="font-size: 10px; letter-spacing: 0.05em;">
+                    SISTEMA DE CRÉDITOS
+                </div>
+            </div>
+
+            <!-- Vertical Navigation with Role-based Disabled Routes -->
+            <nav class="d-flex flex-column py-2">
+                <!-- 1. Dashboard -->
+                <a href="/" class="sidebar-link {% if request.path == '/' or request.path == '/usuarios/dashboard/' %}active{% endif %}">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <!-- 2. Clientes (Todos los roles operativos pueden consultar) -->
+                {% if request.user.rol in "ADMINISTRADOR,OFICIAL,ANALISTA,JEFE,CAJERO,GERENTE" or request.user.is_superuser %}
+                    <a href="{% url 'clientes:listado' %}" class="sidebar-link {% if '/clientes/' in request.path %}active{% endif %}">
+                        <span class="material-symbols-outlined">group</span>
+                        <span>Clientes</span>
+                    </a>
+                {% else %}
+                    <div class="sidebar-link disabled-route d-flex justify-content-between align-items-center" title="Acceso no autorizado">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined">group</span>
+                            <span>Clientes</span>
+                        </span>
+                        <span class="badge-vk badge-vk-neutral">[BLOQUEADO]</span>
+                    </div>
+                {% endif %}
+
+                <!-- 3. Solicitudes (Oficial, Jefe, Admin) -->
+                {% if request.user.rol in "ADMINISTRADOR,OFICIAL,JEFE" or request.user.is_superuser %}
+                    <a href="{% url 'solicitudes:listado' %}" class="sidebar-link {% if '/solicitudes/' in request.path %}active{% endif %}">
+                        <span class="material-symbols-outlined">description</span>
+                        <span>Solicitudes</span>
+                    </a>
+                {% else %}
+                    <div class="sidebar-link disabled-route d-flex justify-content-between align-items-center" title="Solo Oficial de Crédito o Jefatura">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined">description</span>
+                            <span>Solicitudes</span>
+                        </span>
+                        <span class="badge-vk badge-vk-neutral">[RESTRINGIDO]</span>
+                    </div>
+                {% endif %}
+
+                <!-- 4. Evaluación de Riesgo (Analista, Jefe, Admin) -->
+                {% if request.user.rol in "ADMINISTRADOR,ANALISTA,JEFE" or request.user.is_superuser %}
+                    <a href="{% url 'evaluacion:listado' %}" class="sidebar-link {% if '/evaluacion/' in request.path %}active{% endif %}">
+                        <span class="material-symbols-outlined">fact_check</span>
+                        <span>Evaluación de Riesgo</span>
+                    </a>
+                {% else %}
+                    <div class="sidebar-link disabled-route d-flex justify-content-between align-items-center" title="Solo Analistas o Jefes de Crédito">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined">fact_check</span>
+                            <span>Evaluación de Riesgo</span>
+                        </span>
+                        <span class="badge-vk badge-vk-neutral">[RESTRINGIDO]</span>
+                    </div>
+                {% endif %}
+
+                <!-- 5. Cartera de Créditos (Jefe, Gerente, Oficial, Admin, Cajero) -->
+                {% if request.user.rol in "ADMINISTRADOR,JEFE,GERENTE,OFICIAL,CAJERO" or request.user.is_superuser %}
+                    <a href="{% url 'creditos:listado' %}" class="sidebar-link {% if '/creditos/' in request.path and '/creditos/reportes/' not in request.path %}active{% endif %}">
+                        <span class="material-symbols-outlined">account_balance</span>
+                        <span>Cartera de Créditos</span>
+                    </a>
+                {% else %}
+                    <div class="sidebar-link disabled-route d-flex justify-content-between align-items-center" title="Acceso no autorizado">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined">account_balance</span>
+                            <span>Cartera de Créditos</span>
+                        </span>
+                        <span class="badge-vk badge-vk-neutral">[BLOQUEADO]</span>
+                    </div>
+                {% endif %}
+
+                <!-- 6. Ventanilla de Caja / Pagos (Cajero, Admin) -->
+                {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
+                    <a href="{% url 'pagos:listado' %}" class="sidebar-link {% if '/pagos/' in request.path %}active{% endif %}">
+                        <span class="material-symbols-outlined">point_of_sale</span>
+                        <span>Ventanilla de Caja</span>
+                    </a>
+                {% else %}
+                    <div class="sidebar-link disabled-route d-flex justify-content-between align-items-center" title="Exclusivo de Cajeros en Ventanilla">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined">point_of_sale</span>
+                            <span>Ventanilla de Caja</span>
+                        </span>
+                        <span class="badge-vk badge-vk-neutral">[RESTRINGIDO]</span>
+                    </div>
+                {% endif %}
+
+                <!-- 7. Reportes Gerenciales (Gerente, Jefe, Admin) -->
+                {% if request.user.rol in "ADMINISTRADOR,GERENTE,JEFE" or request.user.is_superuser %}
+                    <a href="{% url 'creditos:reportes' %}" class="sidebar-link {% if '/creditos/reportes/' in request.path %}active{% endif %}">
+                        <span class="material-symbols-outlined">bar_chart</span>
+                        <span>Reportes Gerenciales</span>
+                    </a>
+                {% else %}
+                    <div class="sidebar-link disabled-route d-flex justify-content-between align-items-center" title="Solo Gerencia o Jefatura">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined">bar_chart</span>
+                            <span>Reportes Gerenciales</span>
+                        </span>
+                        <span class="badge-vk badge-vk-neutral">[RESTRINGIDO]</span>
+                    </div>
+                {% endif %}
+
+                <!-- 8. Auditoría y Usuarios (Solo Administrador) -->
+                {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
+                    <a href="{% url 'usuarios:usuario_list' %}" class="sidebar-link {% if '/usuarios/' in request.path and '/usuarios/login/' not in request.path and '/usuarios/dashboard/' not in request.path %}active{% endif %}">
+                        <span class="material-symbols-outlined">verified_user</span>
+                        <span>Auditoría y Usuarios</span>
+                    </a>
+                {% else %}
+                    <div class="sidebar-link disabled-route d-flex justify-content-between align-items-center" title="Solo Administrador del Sistema (CU15)">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined">verified_user</span>
+                            <span>Auditoría y Usuarios</span>
+                        </span>
+                        <span class="badge-vk badge-vk-neutral">[BLOQUEADO]</span>
+                    </div>
+                {% endif %}
+            </nav>
+        </div>
+
+        <!-- Session User Info & Logout Button -->
+        <div class="p-3 border-top border-dark bg-white d-flex flex-column gap-2 w-100">
+            {% if request.user.is_authenticated %}
+                <div class="border border-dark p-2 bg-light w-100">
+                    <div class="fw-bold text-black text-truncate" style="font-size: 12px;">
+                        {{ request.user.nombre_completo|default:request.user.login }}
+                    </div>
+                    <div class="font-mono text-uppercase text-secondary fw-semibold" style="font-size: 10px;">
+                        {{ request.user.get_rol_display }}
+                    </div>
+                </div>
+
+                <form action="{% url 'usuarios:logout' %}" method="post" class="w-100 m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-vk-outline w-100 d-flex align-items-center justify-content-center gap-2" style="height: 32px;">
+                        <span class="material-symbols-outlined" style="font-size: 15px;">logout</span>
+                        <span>CERRAR SESIÓN</span>
+                    </button>
+                </form>
+            {% else %}
+                <a href="{% url 'usuarios:login' %}" class="btn btn-vk-primary w-100 text-center">
+                    INICIAR SESIÓN
+                </a>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- ========================================================================= -->
+    <!-- CONTENIDO PRINCIPAL FLUIDO                                               -->
+    <!-- ========================================================================= -->
+    <div class="d-flex flex-column flex-grow-1 h-100 overflow-y-auto" style="background-color: #f9f9f9;">
+        <!-- Top Institutional Header -->
+        <header class="sticky-top bg-white border-bottom border-dark py-2 px-4" style="z-index: 1010; min-height: 56px;">
+            <div class="d-flex justify-content-between align-items-center gap-3">
+                <div class="d-flex flex-column">
+                    <div class="font-mono text-uppercase text-secondary" style="font-size: 9px; letter-spacing: 0.05em;">
+                        BANCO VOLKSKAS S.A. / SISTEMA DE CRÉDITOS / {% block module_name %}OPERACIONES{% endblock %}
+                    </div>
+                    <h1 class="h6 mb-0 fw-bold text-black text-uppercase tracking-tight" style="font-size: 15px;">
+                        {% block page_title %}PANEL DE CONTROL OPERATIVO{% endblock %}
+                    </h1>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-none d-md-flex flex-column text-end border-end border-dark pe-3 font-mono">
+                        <span class="fw-bold text-black" style="font-size: 12px;">{% now "d/m/Y H:i" %}</span>
+                        <span class="text-secondary text-uppercase" style="font-size: 9px;">TERMINAL ACTIVA &bull; LATENCIA: 4ms</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        {% block header_actions %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Body Workspace -->
+        <main class="p-4 flex-grow-1" style="max-width: 1400px; width: 100%; margin: 0 auto;">
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="alert border border-dark rounded-0 p-2 mb-2 d-flex justify-content-between align-items-center font-mono text-uppercase"
+                             style="font-size: 11px; {% if message.tags == 'error' %}background-color: #fee2e2; color: #991b1b; border-color: #991b1b !important;{% else %}background-color: #f4f4f5; color: #000000;{% endif %}">
+                            <span>{{ message }}</span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="font-size: 10px;"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="border-top border-dark py-2 px-4 bg-white text-secondary font-mono d-flex justify-content-between align-items-center" style="font-size: 10px;">
+            <span>BANCO VOLKSKAS S.A. &copy; {% now "Y" %}</span>
+        </footer>
+    </div>
+</div>
+{% endblock %}

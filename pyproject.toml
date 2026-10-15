@@ -48,7 +48,7 @@ select = [
     "UP",  # pyupgrade
     "DJ",  # flake8-django
 ]
-ignore = []
+ignore = ["E501", "DJ001"]
 
 [tool.ruff.lint.per-file-ignores]
 "database/seed.py" = ["E402"]

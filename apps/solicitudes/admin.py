@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import SolicitudCredito, Garantia
+
+from .models import Garantia, SolicitudCredito
 
 
 class GarantiaInline(admin.TabularInline):
