@@ -13,9 +13,9 @@ from pathlib import Path
 # Configurar rutas y entorno Django
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
-sys.path.insert(0, str(BASE_DIR / 'apps'))
+sys.path.insert(0, str(BASE_DIR / "apps"))
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 import django
 
@@ -26,16 +26,16 @@ from django.contrib.auth import get_user_model
 
 def seed_superuser():
     User = get_user_model()
-    username = os.getenv('SEED_ADMIN_USER', 'admin')
-    email = os.getenv('SEED_ADMIN_EMAIL', 'admin@example.com')
-    password = os.getenv('SEED_ADMIN_PASSWORD', 'admin123')
+    username = os.getenv("SEED_ADMIN_USER", "admin")
+    email = os.getenv("SEED_ADMIN_EMAIL", "admin@example.com")
+    password = os.getenv("SEED_ADMIN_PASSWORD", "admin123")
 
     user, created = User.objects.get_or_create(
         username=username,
         defaults={
-            'email': email,
-            'is_staff': True,
-            'is_superuser': True,
+            "email": email,
+            "is_staff": True,
+            "is_superuser": True,
         },
     )
 
@@ -54,5 +54,5 @@ def seed_all():
     print("Seed completado exitosamente.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     seed_all()

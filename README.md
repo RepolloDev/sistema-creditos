@@ -37,6 +37,9 @@ Panel de administración en [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000
 | `uv run task check` | Verifica el estado de la configuración |
 | `uv run task test` | Corre las pruebas unitarias |
 | `uv run task seed` | Puebla la base de datos con datos iniciales |
+| `uv run task format` | Formatea el código con Ruff |
+| `uv run task lint` | Analiza el código con linter Ruff |
+| `uv run task lint-fix` | Corrige advertencias de lint automáticamente |
 
 ---
 
