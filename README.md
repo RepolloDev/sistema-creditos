@@ -1,5 +1,7 @@
 ## Inicio Rápido (Setup Inicial)
 
+-- Holaa ^^ (romel)
+
 ```bash
 # 1. Configurar variables de entorno
 cp .env.example .env
