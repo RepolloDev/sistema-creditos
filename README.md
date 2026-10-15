@@ -1,4 +1,5 @@
 ## Inicio Rápido (Setup Inicial)
+olaaaaaaaaaaaaaaaa
 
 ```bash
 # 1. Configurar variables de entorno
