@@ -36,6 +36,7 @@ Panel de administración en [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000
 | `uv run task makemigrations` | Genera nuevas migraciones a partir de los modelos |
 | `uv run task check` | Verifica el estado de la configuración |
 | `uv run task test` | Corre las pruebas unitarias |
+| `uv run task seed` | Puebla la base de datos con datos iniciales |
 
 ---
 
@@ -45,17 +46,17 @@ Panel de administración en [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000
 sis-creditos/
 ├── apps/          # Módulos de dominio (clientes, creditos, etc.)
 ├── config/        # Configuración central (settings, urls, wsgi)
+├── database/      # SQLite local (ignorado por Git) y scripts seed
 ├── templates/     # Frontend (HTML, base.html con Tailwind)
 ├── static/        # CSS, JavaScript e imágenes globales
 ├── pyproject.toml # Dependencias y scripts del proyecto
-├── .env           # Variables locales (ignorado por Git)
-└── db.sqlite3     # Base de datos local (ignorado por Git)
+└── .env           # Variables locales (ignorado por Git)
 ```
 
 ---
 
 ## Reglas para el Equipo
 
-1. **Nunca subir `db.sqlite3` ni `.env`** al repositorio.
+1. **Nunca subir `database/*.sqlite3` ni `.env`** al repositorio.
 2. Cada desarrollador trabaja en su app correspondiente dentro de `apps/`.
 3. Antes de abrir un PR, asegurarse de ejecutar `uv run task makemigrations` y `uv run task check`.

@@ -22,4 +22,5 @@ migrate = "python manage.py migrate"
 makemigrations = "python manage.py makemigrations"
 check = "python manage.py check"
 test = "python manage.py test"
+seed = "python database/seed.py"
 
