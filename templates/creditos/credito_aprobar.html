@@ -1,8 +1,87 @@
-{% extends "base.html" %}
+{% extends "base_dashboard.html" %}
+{% block title %}Aprobar Solicitud #{{ solicitud.id }}{% endblock %}
+{% block breadcrumb %}Créditos / Aprobar Solicitud #{{ solicitud.id }}{% endblock %}
+{% block page_title %}Resolución de Aprobación de Crédito — Solicitud #{{ solicitud.id }}{% endblock %}
 
-{% block title %}Aprobar Crédito - Banco Volkskas S.A.{% endblock %}
-{% block page_title %}APROBACIÓN RESOLUTIVA DE CRÉDITO{% endblock %}
-{% block module_name %}CRÉDITOS (CU07 / RF08){% endblock %}
+{% block top_actions %}
+<a href="{% url 'solicitudes:detalle' solicitud.pk %}" class="btn-vk-outline text-decoration-none">Volver a la Solicitud</a>
+{% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
+<div class="row g-4">
+  <!-- Formulario de Condiciones de Aprobación -->
+  <div class="col-lg-7">
+    <div class="bg-white border border-dark p-4">
+      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.8rem; letter-spacing: 0.05em;">
+        Condiciones Financieras Definitivas (Generación de Contrato y Cronograma)
+      </h6>
+      <p class="small text-muted mb-4">
+        Al confirmar la aprobación, el sistema generará automáticamente el <strong>Contrato Legal</strong> y la tabla de amortización bajo el <strong>Sistema Francés</strong> (cuota fija mensual).
+      </p>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.04em;">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+          <div class="text-danger small mt-1 fw-medium">{{ field.errors|striptags }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+          <a href="{% url 'solicitudes:detalle' solicitud.pk %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
+          <button type="submit" class="btn-vk-primary">Confirmar Aprobación y Generar Cronograma</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Resumen de Solicitud y Evaluación -->
+  <div class="col-lg-5">
+    <div class="bg-white border border-dark p-3 mb-4">
+      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.78rem; letter-spacing: 0.05em;">
+        Antecedentes del Solicitante
+      </h6>
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted text-uppercase">Cliente</dt>
+        <dd class="col-7 fw-bold">{{ solicitud.cliente.nombres }} {{ solicitud.cliente.apellidos }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">C.I.</dt>
+        <dd class="col-7 font-mono">{{ solicitud.cliente.ci }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Monto Solicitado</dt>
+        <dd class="col-7 font-mono fw-bold">Bs. {{ solicitud.monto_solicitado|floatformat:2 }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Plazo Solicitado</dt>
+        <dd class="col-7 font-mono">{{ solicitud.plazo_meses }} meses</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Destino</dt>
+        <dd class="col-7">{{ solicitud.destino }}</dd>
+      </dl>
+    </div>
+
+    {% if evaluacion %}
+    <div class="bg-white border border-dark p-3">
+      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.78rem; letter-spacing: 0.05em;">
+        Respaldo de Evaluación Técnica (#{{ evaluacion.id }})
+      </h6>
+      <dl class="row mb-0 small">
+        <dt class="col-6 text-muted text-uppercase">Capacidad de Pago</dt>
+        <dd class="col-6 font-mono fw-bold">Bs. {{ evaluacion.capacidad_pago|floatformat:2 }}</dd>
+
+        <dt class="col-6 text-muted text-uppercase">Nivel de Riesgo</dt>
+        <dd class="col-6"><span class="badge-vk badge-vk-neutral">{{ evaluacion.get_nivel_riesgo_display }}</span></dd>
+
+        <dt class="col-6 text-muted text-uppercase">Dictamen Analista</dt>
+        <dd class="col-6"><span class="badge-vk badge-vk-success">{{ evaluacion.get_resultado_display }}</span></dd>
+      </dl>
+    </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

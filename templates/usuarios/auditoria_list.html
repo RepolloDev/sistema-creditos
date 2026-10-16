@@ -1,0 +1,83 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Bitácora de Auditoría - Banco Volkskas S.A.{% endblock %}
+{% block page_title %}BITÁCORA INMUTABLE DE AUDITORÍA (RN12 / RNF06){% endblock %}
+{% block module_name %}SEGURIDAD Y TRAZABILIDAD{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'usuarios:usuario_list' %}" class="btn btn-vk-outline d-inline-flex align-items-center gap-1">
+    <span class="material-symbols-outlined" style="font-size: 15px;">group</span>
+    <span>GESTIÓN DE USUARIOS</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+    <div class="border border-dark bg-white p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-12 col-md-5">
+                <input type="text" name="q" value="{{ q }}" placeholder="Buscar por operación o login..." class="form-control border-dark font-mono" style="height: 32px; font-size: 12px;">
+            </div>
+            <div class="col-12 col-md-3">
+                <select name="entidad" class="form-select border-dark font-mono" style="height: 32px; font-size: 12px;">
+                    <option value="">-- Todas las entidades --</option>
+                    {% for ent in entidades %}
+                        <option value="{{ ent }}" {% if selected_entidad == ent %}selected{% endif %}>{{ ent }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-vk-primary" style="height: 32px;">FILTRAR</button>
+                <a href="{% url 'usuarios:auditoria_list' %}" class="btn btn-vk-outline ms-1" style="height: 32px;">LIMPIAR</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="border border-dark bg-white">
+        <div class="table-responsive">
+            <table class="table-vk">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>TIMESTAMP</th>
+                        <th>FUNCIONARIO RESPONSABLE</th>
+                        <th>OPERACIÓN</th>
+                        <th>ENTIDAD</th>
+                        <th>ID REGISTRO</th>
+                        <th class="text-center">RESULTADO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in auditorias %}
+                    <tr>
+                        <td class="font-mono text-secondary">#{{ a.id }}</td>
+                        <td class="font-mono">{{ a.fecha_hora|date:"d/m/Y H:i:s" }}</td>
+                        <td class="font-mono">
+                            {% if a.usuario %}
+                                <strong>{{ a.usuario.login }}</strong> - {{ a.usuario.nombre_completo }}
+                            {% else %}
+                                <span class="text-secondary">SISTEMA</span>
+                            {% endif %}
+                        </td>
+                        <td class="font-mono fw-bold text-black">{{ a.operacion }}</td>
+                        <td class="font-mono">{{ a.entidad }}</td>
+                        <td class="font-mono">#{{ a.id_entidad }}</td>
+                        <td class="text-center">
+                            {% if a.resultado == "EXITOSO" %}
+                                <span class="badge-vk badge-vk-success">[ EXITOSO ]</span>
+                            {% else %}
+                                <span class="badge-vk badge-vk-danger">[ ERROR ]</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-secondary font-mono">No se encontraron registros de auditoría.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

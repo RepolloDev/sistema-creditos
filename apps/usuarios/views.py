@@ -52,7 +52,12 @@ from django.views.generic import CreateView, DeleteView, ListView, TemplateView,
 
 # Importamos los formularios que creamos en forms.py y el modelo Usuario de models.py
 from .forms import LoginForm, UsuarioCreateForm, UsuarioUpdateForm
-from .models import Usuario
+from .models import Auditoria, Usuario
+from clientes.models import Cliente
+from solicitudes.models import SolicitudCredito
+from creditos.models import Credito, Cuota
+from pagos.models import Pago
+from django.db.models import Sum, Count, Q
 
 
 # ------------------------------------------------------------------------------
@@ -224,10 +229,82 @@ class UsuarioDeleteView(SoloAdminMixin, DeleteView):
 # ------------------------------------------------------------------------------
 class DashboardView(LoginRequiredMixin, TemplateView):
     """
-    Vista base del Dashboard Operativo.
+    Vista central del Dashboard Operativo con métricas en tiempo real.
     """
 
     template_name = "dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["total_clientes"] = Cliente.objects.count()
+        context["solicitudes_pendientes"] = SolicitudCredito.objects.filter(
+            estado__in=["REGISTRADA", "EN_EVALUACION"]
+        ).count()
+        context["creditos_activos"] = Credito.objects.filter(
+            estado__in=["VIGENTE", "EN_MORA"]
+        ).count()
+        context["creditos_en_mora"] = Credito.objects.filter(estado="EN_MORA").count()
+
+        cartera_agg = Credito.objects.filter(estado__in=["VIGENTE", "EN_MORA"]).aggregate(
+            saldo_total=Sum("saldo_capital"),
+            colocado_total=Sum("monto_aprobado"),
+        )
+        context["saldo_cartera"] = cartera_agg["saldo_total"] or 0
+        context["monto_colocado"] = cartera_agg["colocado_total"] or 0
+
+        recaudado_agg = Pago.objects.aggregate(total=Sum("monto"))
+        context["total_recaudado"] = recaudado_agg["total"] or 0
+
+        context["ultimas_solicitudes"] = (
+            SolicitudCredito.objects.select_related("cliente")
+            .order_by("-fecha_solicitud")[:6]
+        )
+        context["ultimos_pagos"] = (
+            Pago.objects.select_related("cuota__credito__solicitud__cliente")
+            .order_by("-fecha_pago")[:6]
+        )
+        context["ultimas_auditorias"] = (
+            Auditoria.objects.select_related("usuario").order_by("-fecha_hora")[:8]
+        )
+        return context
+
+
+class AuditoriaListView(SoloAdminMixin, ListView):
+    """
+    Bitácora inmutable de auditoría de operaciones críticas (RN12 / RNF06).
+    """
+    model = Auditoria
+    template_name = "usuarios/auditoria_list.html"
+    context_object_name = "auditorias"
+    paginate_by = 25
+
+    def get_queryset(self):
+        qs = Auditoria.objects.select_related("usuario").order_by("-fecha_hora", "-id")
+        q = self.request.GET.get("q", "").strip()
+        entidad = self.request.GET.get("entidad", "").strip()
+        resultado = self.request.GET.get("resultado", "").strip()
+        if q:
+            qs = qs.filter(
+                Q(operacion__icontains=q)
+                | Q(usuario__login__icontains=q)
+                | Q(usuario__nombre_completo__icontains=q)
+            )
+        if entidad:
+            qs = qs.filter(entidad=entidad)
+        if resultado:
+            qs = qs.filter(resultado=resultado)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["q"] = self.request.GET.get("q", "")
+        context["selected_entidad"] = self.request.GET.get("entidad", "")
+        context["selected_resultado"] = self.request.GET.get("resultado", "")
+        context["entidades"] = (
+            Auditoria.objects.values_list("entidad", flat=True).distinct().order_by("entidad")
+        )
+        return context
+
 
 
 @login_required

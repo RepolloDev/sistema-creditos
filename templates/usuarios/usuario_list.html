@@ -6,6 +6,10 @@
 {% block module_name %}SEGURIDAD Y RBAC{% endblock %}
 
 {% block header_actions %}
+<a href="{% url 'usuarios:auditoria_list' %}" class="btn btn-vk-outline d-inline-flex align-items-center gap-1 me-1">
+    <span class="material-symbols-outlined" style="font-size: 15px;">history</span>
+    <span>BITÁCORA DE AUDITORÍA</span>
+</a>
 <a href="{% url 'usuarios:usuario_create' %}" class="btn btn-vk-primary d-inline-flex align-items-center gap-1">
     <span class="material-symbols-outlined" style="font-size: 15px;">person_add</span>
     <span>+ NUEVO USUARIO</span>

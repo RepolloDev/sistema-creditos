@@ -1,8 +1,94 @@
-{% extends "base.html" %}
+{% extends "base_dashboard.html" %}
+{% block title %}Solicitudes de Crédito{% endblock %}
+{% block breadcrumb %}Solicitudes / Bandeja{% endblock %}
+{% block page_title %}Bandeja de Solicitudes de Crédito{% endblock %}
 
-{% block title %}Solicitudes de Crédito - Banco Volkskas S.A.{% endblock %}
-{% block page_title %}EXPEDIENTES Y SOLICITUDES DE CRÉDITO{% endblock %}
-{% block module_name %}SOLICITUDES (CU02){% endblock %}
+{% block top_actions %}
+<a href="{% url 'solicitudes:crear' %}" class="btn-vk-primary text-decoration-none">+ Nueva Solicitud</a>
+{% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
+<!-- Filtros de Búsqueda -->
+<div class="bg-white border border-dark p-3 mb-4">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Buscar por C.I., Cliente o Destino</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm border-dark rounded-0" placeholder="Ej. Capital de Operaciones o C.I...">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Estado de Solicitud</label>
+      <select name="estado" class="form-select form-select-sm border-dark rounded-0">
+        <option value="">— Todos los estados —</option>
+        {% for val, label in estados %}
+        <option value="{{ val }}" {% if estado_filtro == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn-vk-primary w-100">Filtrar</button>
+      {% if q or estado_filtro %}
+      <a href="{% url 'solicitudes:listado' %}" class="btn-vk-outline text-decoration-none text-center">Limpiar</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Tabla de Solicitudes -->
+<div class="bg-white border border-dark">
+  <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
+    <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Trámites Registrados</span>
+    <span class="font-mono small text-muted">Total: {{ solicitudes|length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vk mb-0">
+      <thead>
+        <tr>
+          <th># ID</th>
+          <th>Cliente (C.I.)</th>
+          <th>Monto Solicitado</th>
+          <th>Plazo</th>
+          <th>Destino</th>
+          <th>Garantías</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in solicitudes %}
+        <tr>
+          <td class="font-mono fw-bold">#{{ s.id }}</td>
+          <td>
+            <div class="fw-medium">{{ s.cliente.apellidos }}, {{ s.cliente.nombres }}</div>
+            <div class="font-mono small text-muted">{{ s.cliente.ci }}</div>
+          </td>
+          <td class="font-mono fw-bold">Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
+          <td class="font-mono">{{ s.plazo_meses }} m.</td>
+          <td>{{ s.destino|truncatechars:35 }}</td>
+          <td class="font-mono">{{ s.garantias.count }}</td>
+          <td>
+            <span class="badge-vk {% if s.estado == 'APROBADA' %}badge-vk-success{% elif s.estado == 'RECHAZADA' %}badge-vk-danger{% elif s.estado == 'EN_EVALUACION' %}badge-vk-warning{% else %}badge-vk-neutral{% endif %}">
+              {{ s.get_estado_display }}
+            </span>
+          </td>
+          <td class="font-mono small text-muted">{{ s.fecha_solicitud|date:"d/m/Y" }}</td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a href="{% url 'solicitudes:detalle' s.pk %}" class="btn-vk-outline text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Detalle</a>
+              {% if not s.evaluacion and s.estado == 'REGISTRADA' %}
+              <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" class="btn-vk-primary text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Evaluar</a>
+              {% endif %}
+              <a href="{% url 'solicitudes:eliminar' s.pk %}" class="btn-vk-danger text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Eliminar</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-4">No se encontraron solicitudes de crédito.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

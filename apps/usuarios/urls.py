@@ -47,4 +47,5 @@ urlpatterns = [
     # Pantalla de confirmación para dar de baja: /usuarios/<id>/eliminar/
     # Ejemplo: /usuarios/5/eliminar/
     path("<int:pk>/eliminar/", views.UsuarioDeleteView.as_view(), name="usuario_delete"),
+    path("auditorias/", views.AuditoriaListView.as_view(), name="auditoria_list"),
 ]

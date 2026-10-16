@@ -1,0 +1,50 @@
+{% extends "base_dashboard.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block breadcrumb %}Clientes / {{ titulo }}{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'clientes:listado' %}" class="btn-vk-outline text-decoration-none">Volver al Listado</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="bg-white border border-dark p-4">
+      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-4" style="font-size: 0.8rem; letter-spacing: 0.05em;">
+        Datos Personales y Financieros del Solicitante
+      </h6>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger rounded-0 border-dark small">
+          {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="row g-3">
+          {% for field in form %}
+          <div class="{% if field.name == 'direccion' %}col-12{% else %}col-md-6{% endif %}">
+            <label for="{{ field.id_for_label }}" class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.04em;">
+              {{ field.label }}
+            </label>
+            {{ field }}
+            {% if field.help_text %}
+            <div class="form-text small text-muted">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+            <div class="text-danger small mt-1 fw-medium">{{ field.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+          <a href="{% url 'clientes:listado' %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
+          <button type="submit" class="btn-vk-primary">{{ boton_texto }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

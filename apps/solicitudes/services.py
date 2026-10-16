@@ -7,49 +7,78 @@ Reglas de negocio aplicables:
 """
 
 from decimal import Decimal
-
+from typing import Optional
+from django.core.exceptions import ValidationError
+from clientes.models import Cliente
+from usuarios.models import Auditoria, Usuario
 from .models import Garantia, SolicitudCredito
 
 
 def registrar_solicitud(
-    cliente_id: int, monto: Decimal, plazo_meses: int, destino: str
+    cliente_id: int,
+    monto: Decimal,
+    plazo_meses: int,
+    destino: str,
+    usuario: Optional[Usuario] = None,
 ) -> SolicitudCredito:
     """
-    CU02 / RF03: Registrar solicitud de crédito en estado inicial REGISTRADA.
-
-    Parámetros:
-        cliente_id: ID del cliente solicitante previamente registrado.
-        monto: Monto en moneda nacional solicitado (debe ser > 0).
-        plazo_meses: Duración del crédito en meses (debe ser >= 1).
-        destino: Objeto o destino del financiamiento.
-
-    Retorna:
-        Instancia de SolicitudCredito creada con estado REGISTRADA.
+    CU02 / RF03 / RN02: Registra una solicitud en estado inicial REGISTRADA.
     """
-    pass
+    if monto <= Decimal("0.00"):
+        raise ValidationError("El monto solicitado debe ser mayor a cero.")
+    if plazo_meses < 1 or plazo_meses > 240:
+        raise ValidationError("El plazo debe estar entre 1 y 240 meses.")
+
+    cliente = Cliente.objects.get(pk=cliente_id)
+
+    solicitud = SolicitudCredito.objects.create(
+        cliente=cliente,
+        monto_solicitado=monto,
+        plazo_meses=plazo_meses,
+        destino=destino.strip(),
+        estado=SolicitudCredito.Estado.REGISTRADA,
+    )
+
+    Auditoria.objects.create(
+        usuario=usuario if usuario and usuario.is_authenticated else None,
+        operacion="REGISTRAR_SOLICITUD",
+        entidad="SOLICITUD_CREDITO",
+        id_entidad=solicitud.pk,
+        resultado=Auditoria.Resultado.EXITOSO,
+    )
+    return solicitud
 
 
 def registrar_garantia(
-    solicitud_id: int, tipo: str, descripcion: str, valor_estimado: Decimal
+    solicitud_id: int,
+    tipo: str,
+    descripcion: str,
+    valor: Decimal,
+    usuario: Optional[Usuario] = None,
 ) -> Garantia:
     """
-    CU06 / RF07: Registrar respaldo patrimonial o garante vinculado a una solicitud.
-
-    Parámetros:
-        solicitud_id: ID de la solicitud a respaldar.
-        tipo: Tipo de garantía (PERSONAL, PRENDARIA, HIPOTECARIA).
-        descripcion: Detalle del bien mueble/inmueble o datos del garante.
-        valor_estimado: Avalúo o valor comercial estimado.
-
-    Retorna:
-        Instancia de Garantia creada en estado REGISTRADA.
+    CU06 / RF07 / RN13: Registra una garantía asociada a una solicitud de crédito.
     """
-    pass
+    if valor <= Decimal("0.00"):
+        raise ValidationError("El valor estimado de la garantía debe ser positivo (RN13).")
+    if not descripcion or not descripcion.strip():
+        raise ValidationError("La descripción de la garantía es obligatoria (RN13).")
 
+    solicitud = SolicitudCredito.objects.get(pk=solicitud_id)
 
-def enviar_a_evaluacion(solicitud_id: int) -> SolicitudCredito:
-    """
-    Transiciona el estado de la solicitud de REGISTRADA a EN_EVALUACION (RN02).
-    Notifica al equipo de analistas de crédito para dar inicio a la evaluación técnica.
-    """
-    pass
+    garantia = Garantia.objects.create(
+        solicitud=solicitud,
+        tipo=tipo,
+        descripcion=descripcion.strip(),
+        valor=valor,
+        estado=Garantia.Estado.REGISTRADA,
+    )
+
+    Auditoria.objects.create(
+        usuario=usuario if usuario and usuario.is_authenticated else None,
+        operacion="REGISTRAR_GARANTIA",
+        entidad="GARANTIA",
+        id_entidad=garantia.pk,
+        resultado=Auditoria.Resultado.EXITOSO,
+    )
+    return garantia

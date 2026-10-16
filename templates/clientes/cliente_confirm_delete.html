@@ -1,0 +1,27 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Eliminar Cliente{% endblock %}
+{% block breadcrumb %}Clientes / Eliminar{% endblock %}
+{% block page_title %}Confirmar Eliminación de Cliente{% endblock %}
+
+{% block dashboard_content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="bg-white border border-dark p-4">
+      <h6 class="fw-bold text-uppercase text-danger border-bottom border-dark pb-2 mb-3">
+        Advertencia de Eliminación Permanente (Modo MVP)
+      </h6>
+      <p class="small">
+        ¿Está seguro que desea eliminar al cliente <strong>{{ object.nombres }} {{ object.apellidos }}</strong> con C.I. <span class="font-mono fw-bold">{{ object.ci }}</span>?
+      </p>
+      <p class="small text-muted">
+        Esta acción eliminará en cascada sus solicitudes, garantías, evaluaciones, créditos y pagos asociados.
+      </p>
+      <form method="post" class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+        {% csrf_token %}
+        <a href="{% url 'clientes:detalle' object.pk %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
+        <button type="submit" class="btn-vk-danger">Confirmar Eliminación</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Expediente de Cliente - {{ cliente.ci }}{% endblock %}
+{% block breadcrumb %}Clientes / Expediente {{ cliente.ci }}{% endblock %}
+{% block page_title %}{{ cliente.apellidos }}, {{ cliente.nombres }}{% endblock %}
+
+{% block top_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'solicitudes:crear' %}?cliente_id={{ cliente.pk }}" class="btn-vk-primary text-decoration-none">+ Nueva Solicitud</a>
+  <a href="{% url 'clientes:editar' cliente.pk %}" class="btn-vk-outline text-decoration-none">Editar Cliente</a>
+  <a href="{% url 'clientes:eliminar' cliente.pk %}" class="btn-vk-danger text-decoration-none">Eliminar</a>
+  <a href="{% url 'clientes:listado' %}" class="btn-vk-outline text-decoration-none">Volver</a>
+</div>
+{% endblock %}
+
+{% block dashboard_content %}
+<!-- Tarjetas de Perfil Financiero -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="bg-white border border-dark p-3 h-100">
+      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.06em;">Ingresos Mensuales</div>
+      <div class="fs-4 fw-bold font-mono mt-1">Bs. {{ cliente.ingresos_mensuales|floatformat:2 }}</div>
+      <div class="small text-muted mt-1">Declarado en ficha</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="bg-white border border-dark p-3 h-100">
+      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.06em;">Solicitudes Totales</div>
+      <div class="fs-4 fw-bold font-mono mt-1">{{ perfil.total_solicitudes }}</div>
+      <div class="small text-muted mt-1">Trámites históricos</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="bg-white border border-dark p-3 h-100">
+      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.06em;">Créditos Activos / Mora</div>
+      <div class="fs-4 fw-bold font-mono mt-1">{{ perfil.creditos_activos }}</div>
+      <div class="small text-muted mt-1">Operaciones vigentes</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="bg-white border border-dark p-3 h-100">
+      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.06em;">Deuda Total Vigente</div>
+      <div class="fs-4 fw-bold font-mono mt-1 {% if perfil.deuda_total_vigente > 0 %}text-danger{% endif %}">Bs. {{ perfil.deuda_total_vigente|floatformat:2 }}</div>
+      <div class="small text-muted mt-1">Saldo capital pendiente</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Datos Personales -->
+  <div class="col-lg-4">
+    <div class="bg-white border border-dark p-3">
+      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.78rem; letter-spacing: 0.05em;">
+        Ficha de Identificación
+      </h6>
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted text-uppercase">Cédula (C.I.)</dt>
+        <dd class="col-7 font-mono fw-bold">{{ cliente.ci }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Nombres</dt>
+        <dd class="col-7">{{ cliente.nombres }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Apellidos</dt>
+        <dd class="col-7">{{ cliente.apellidos }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Teléfono</dt>
+        <dd class="col-7 font-mono">{{ cliente.telefono }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Email</dt>
+        <dd class="col-7 font-mono">{{ cliente.email|default:"No registrado" }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Dirección</dt>
+        <dd class="col-7">{{ cliente.direccion }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Fecha Alta</dt>
+        <dd class="col-7 font-mono">{{ cliente.fecha_registro|date:"d/m/Y" }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- Historial de Solicitudes y Créditos -->
+  <div class="col-lg-8">
+    <div class="bg-white border border-dark">
+      <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
+        <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Historial de Solicitudes de Crédito</span>
+        <a href="{% url 'solicitudes:crear' %}?cliente_id={{ cliente.pk }}" class="btn-vk-primary text-decoration-none" style="padding: 0.2rem 0.6rem; font-size: 0.72rem;">+ Registrar Solicitud</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vk mb-0">
+          <thead>
+            <tr>
+              <th># Solicitud</th>
+              <th>Fecha</th>
+              <th>Monto Solicitado</th>
+              <th>Plazo</th>
+              <th>Estado Solicitud</th>
+              <th>Crédito Asociado</th>
+              <th class="text-end">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in solicitudes %}
+            <tr>
+              <td class="font-mono fw-bold">#{{ s.id }}</td>
+              <td class="font-mono small">{{ s.fecha_solicitud|date:"d/m/Y" }}</td>
+              <td class="font-mono">Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
+              <td class="font-mono">{{ s.plazo_meses }} meses</td>
+              <td>
+                <span class="badge-vk {% if s.estado == 'APROBADA' %}badge-vk-success{% elif s.estado == 'RECHAZADA' %}badge-vk-danger{% elif s.estado == 'EN_EVALUACION' %}badge-vk-warning{% else %}badge-vk-neutral{% endif %}">
+                  {{ s.get_estado_display }}
+                </span>
+              </td>
+              <td>
+                {% if s.credito %}
+                <a href="{% url 'creditos:detalle' s.credito.pk %}" class="font-mono fw-bold text-dark">
+                  #{{ s.credito.id }} ({{ s.credito.get_estado_display }})
+                </a>
+                {% else %}
+                <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <a href="{% url 'solicitudes:detalle' s.pk %}" class="btn-vk-outline text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Ver Trámite</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">Este cliente aún no registra solicitudes de crédito.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

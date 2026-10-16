@@ -1,0 +1,27 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Anular Pago {{ object.numero_recibo }}{% endblock %}
+{% block breadcrumb %}Pagos / Anular {{ object.numero_recibo }}{% endblock %}
+{% block page_title %}Confirmar Anulación de Pago en Caja{% endblock %}
+
+{% block dashboard_content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="bg-white border border-dark p-4">
+      <h6 class="fw-bold text-uppercase text-danger border-bottom border-dark pb-2 mb-3">
+        Confirmar Reversión de Pago (Modo MVP)
+      </h6>
+      <p class="small">
+        ¿Está seguro que desea anular y eliminar el pago con recibo <strong class="font-mono">{{ object.numero_recibo }}</strong> por <strong class="font-mono">Bs. {{ object.monto|floatformat:2 }}</strong>?
+      </p>
+      <p class="small text-muted">
+        Al confirmar, la Cuota #{{ object.cuota.numero_cuota }} volverá al estado <code>PENDIENTE</code> y el capital amortizado se restituirá al saldo pendiente del Crédito #{{ object.cuota.credito.id }}.
+      </p>
+      <form method="post" class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+        {% csrf_token %}
+        <a href="{% url 'pagos:comprobante' object.pk %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
+        <button type="submit" class="btn-vk-danger">Confirmar Reversión y Eliminar</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

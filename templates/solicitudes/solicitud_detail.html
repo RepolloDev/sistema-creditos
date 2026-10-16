@@ -1,8 +1,159 @@
-{% extends "base.html" %}
+{% extends "base_dashboard.html" %}
+{% block title %}Solicitud #{{ solicitud.id }}{% endblock %}
+{% block breadcrumb %}Solicitudes / Trámite #{{ solicitud.id }}{% endblock %}
+{% block page_title %}Solicitud de Crédito #{{ solicitud.id }}{% endblock %}
 
-{% block title %}Detalle de Solicitud - Banco Volkskas S.A.{% endblock %}
-{% block page_title %}EXPEDIENTE INTEGRAL DE SOLICITUD{% endblock %}
-{% block module_name %}SOLICITUDES{% endblock %}
+{% block top_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'solicitudes:garantia_crear' solicitud.pk %}" class="btn-vk-outline text-decoration-none">+ Agregar Garantía</a>
+  {% if not evaluacion %}
+  <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ solicitud.pk }}" class="btn-vk-primary text-decoration-none">Realizar Evaluación</a>
+  {% endif %}
+  {% if solicitud.estado == 'EN_EVALUACION' or solicitud.estado == 'REGISTRADA' %}
+  <a href="{% url 'creditos:aprobar' solicitud.pk %}" class="btn-vk-primary text-decoration-none">Aprobar Crédito</a>
+  <a href="{% url 'creditos:rechazar' solicitud.pk %}" class="btn-vk-danger text-decoration-none">Rechazar</a>
+  {% endif %}
+  <a href="{% url 'solicitudes:eliminar' solicitud.pk %}" class="btn-vk-danger text-decoration-none">Eliminar</a>
+  <a href="{% url 'solicitudes:listado' %}" class="btn-vk-outline text-decoration-none">Volver</a>
+</div>
+{% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
+<div class="row g-4">
+  <!-- Columna Izquierda: Datos de Solicitud y Evaluación -->
+  <div class="col-lg-5">
+    <div class="bg-white border border-dark p-3 mb-4">
+      <div class="d-flex justify-content-between align-items-center border-bottom border-dark pb-2 mb-3">
+        <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Ficha del Trámite</span>
+        <span class="badge-vk {% if solicitud.estado == 'APROBADA' %}badge-vk-success{% elif solicitud.estado == 'RECHAZADA' %}badge-vk-danger{% elif solicitud.estado == 'EN_EVALUACION' %}badge-vk-warning{% else %}badge-vk-neutral{% endif %}">
+          {{ solicitud.get_estado_display }}
+        </span>
+      </div>
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted text-uppercase">Cliente</dt>
+        <dd class="col-7 fw-bold">
+          <a href="{% url 'clientes:detalle' solicitud.cliente.pk %}" class="text-dark">
+            {{ solicitud.cliente.nombres }} {{ solicitud.cliente.apellidos }}
+          </a>
+        </dd>
+
+        <dt class="col-5 text-muted text-uppercase">Cédula (C.I.)</dt>
+        <dd class="col-7 font-mono">{{ solicitud.cliente.ci }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Ingresos Cliente</dt>
+        <dd class="col-7 font-mono">Bs. {{ solicitud.cliente.ingresos_mensuales|floatformat:2 }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Monto Solicitado</dt>
+        <dd class="col-7 font-mono fw-bold fs-6">Bs. {{ solicitud.monto_solicitado|floatformat:2 }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Plazo Solicitado</dt>
+        <dd class="col-7 font-mono">{{ solicitud.plazo_meses }} meses</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Destino del Crédito</dt>
+        <dd class="col-7">{{ solicitud.destino }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Fecha Solicitud</dt>
+        <dd class="col-7 font-mono">{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</dd>
+      </dl>
+    </div>
+
+    <!-- Estado de Evaluación Crediticia -->
+    <div class="bg-white border border-dark p-3 mb-4">
+      <div class="d-flex justify-content-between align-items-center border-bottom border-dark pb-2 mb-3">
+        <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Dictamen de Evaluación</span>
+        {% if evaluacion %}
+        <a href="{% url 'evaluacion:detalle' evaluacion.pk %}" class="btn-vk-outline text-decoration-none" style="padding: 0.15rem 0.5rem; font-size: 0.7rem;">Ver Dictamen</a>
+        {% endif %}
+      </div>
+      {% if evaluacion %}
+      <dl class="row mb-0 small">
+        <dt class="col-6 text-muted text-uppercase">Capacidad de Pago</dt>
+        <dd class="col-6 font-mono fw-bold">Bs. {{ evaluacion.capacidad_pago|floatformat:2 }}</dd>
+
+        <dt class="col-6 text-muted text-uppercase">Nivel de Riesgo</dt>
+        <dd class="col-6">
+          <span class="badge-vk {% if evaluacion.nivel_riesgo == 'BAJO' %}badge-vk-success{% elif evaluacion.nivel_riesgo == 'MEDIO' %}badge-vk-warning{% else %}badge-vk-danger{% endif %}">
+            {{ evaluacion.get_nivel_riesgo_display }}
+          </span>
+        </dd>
+
+        <dt class="col-6 text-muted text-uppercase">Resultado Técnico</dt>
+        <dd class="col-6">
+          <span class="badge-vk {% if evaluacion.resultado == 'FAVORABLE' %}badge-vk-success{% else %}badge-vk-danger{% endif %}">
+            {{ evaluacion.get_resultado_display }}
+          </span>
+        </dd>
+
+        <dt class="col-6 text-muted text-uppercase">Fecha Evaluación</dt>
+        <dd class="col-6 font-mono">{{ evaluacion.fecha_evaluacion|date:"d/m/Y" }}</dd>
+      </dl>
+      {% else %}
+      <p class="small text-muted mb-3">Esta solicitud aún no cuenta con un dictamen técnico de evaluación de riesgo.</p>
+      <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ solicitud.pk }}" class="btn-vk-primary text-decoration-none d-inline-block">Emitir Evaluación Crediticia</a>
+      {% endif %}
+    </div>
+
+    <!-- Crédito Aprobado Asociado (si existe) -->
+    {% if credito %}
+    <div class="bg-white border border-dark p-3">
+      <div class="d-flex justify-content-between align-items-center border-bottom border-dark pb-2 mb-3">
+        <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Operación Crediticia {{ credito.numero_credito }}</span>
+        <span class="badge-vk badge-vk-success">{{ credito.get_estado_display }}</span>
+      </div>
+      <p class="small mb-2">
+        Monto aprobado: <strong class="font-mono">Bs. {{ credito.monto_aprobado|floatformat:2 }}</strong> a <strong class="font-mono">{{ credito.plazo_meses }} meses</strong> ({{ credito.tasa_interes }}% anual).
+      </p>
+      <a href="{% url 'creditos:detalle' credito.pk %}" class="btn-vk-primary text-decoration-none d-inline-block">Ir al Expediente del Crédito</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Columna Derecha: Garantías de Respaldo -->
+  <div class="col-lg-7">
+    <div class="bg-white border border-dark">
+      <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
+        <div>
+          <span class="fw-bold text-uppercase d-block" style="font-size: 0.78rem; letter-spacing: 0.05em;">Garantías Registradas</span>
+          <span class="small text-muted">Cobertura total estimada: <strong class="font-mono text-dark">Bs. {{ total_garantias|floatformat:2 }}</strong></span>
+        </div>
+        <a href="{% url 'solicitudes:garantia_crear' solicitud.pk %}" class="btn-vk-primary text-decoration-none" style="padding: 0.25rem 0.6rem; font-size: 0.72rem;">+ Añadir Garantía</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vk mb-0">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Descripción del Bien / Respaldo</th>
+              <th>Valor Estimado</th>
+              <th>Estado</th>
+              <th class="text-end">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in garantias %}
+            <tr>
+              <td><span class="badge-vk badge-vk-neutral">{{ g.get_tipo_display }}</span></td>
+              <td>{{ g.descripcion }}</td>
+              <td class="font-mono fw-bold">Bs. {{ g.valor|floatformat:2 }}</td>
+              <td><span class="badge-vk badge-vk-neutral">{{ g.get_estado_display }}</span></td>
+              <td class="text-end">
+                <form method="post" action="{% url 'solicitudes:garantia_eliminar' g.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-vk-danger" style="padding: 0.15rem 0.45rem; font-size: 0.68rem;">Quitar</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                No se han registrado garantías para esta solicitud.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

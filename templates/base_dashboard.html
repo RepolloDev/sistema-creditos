@@ -180,7 +180,7 @@
             <div class="d-flex justify-content-between align-items-center gap-3">
                 <div class="d-flex flex-column">
                     <div class="font-mono text-uppercase text-secondary" style="font-size: 9px; letter-spacing: 0.05em;">
-                        BANCO VOLKSKAS S.A. / SISTEMA DE CRÉDITOS / {% block module_name %}OPERACIONES{% endblock %}
+                        BANCO VOLKSKAS S.A. / SISTEMA DE CRÉDITOS / {% block module_name %}{% block breadcrumb %}OPERACIONES{% endblock %}{% endblock %}
                     </div>
                     <h1 class="h6 mb-0 fw-bold text-black text-uppercase tracking-tight" style="font-size: 15px;">
                         {% block page_title %}PANEL DE CONTROL OPERATIVO{% endblock %}
@@ -192,7 +192,7 @@
                         <span class="text-secondary text-uppercase" style="font-size: 9px;">TERMINAL ACTIVA &bull; LATENCIA: 4ms</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        {% block header_actions %}{% endblock %}
+                        {% block header_actions %}{% block top_actions %}{% endblock %}{% endblock %}
                     </div>
                 </div>
             </div>
@@ -212,8 +212,7 @@
                 </div>
             {% endif %}
 
-            {% block content %}
-            {% endblock %}
+            {% block content %}{% block dashboard_content %}{% endblock %}{% endblock %}
         </main>
 
         <!-- Footer -->

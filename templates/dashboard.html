@@ -1,10 +1,260 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Dashboard - Banco Volkskas S.A.{% endblock %}
+{% block title %}Dashboard Operativo - Banco Volkskas S.A.{% endblock %}
+{% block page_title %}PANEL DE CONTROL OPERATIVO{% endblock %}
+{% block module_name %}CONSOLA CENTRAL{% endblock %}
 
-{% block page_title %}PANEL OPERATIVO{% endblock %}
-{% block module_name %}INICIO{% endblock %}
+{% block header_actions %}
+{% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
+    <a href="{% url 'clientes:crear' %}" class="btn btn-vk-outline d-inline-flex align-items-center gap-1">
+        <span class="material-symbols-outlined" style="font-size: 14px;">person_add</span>
+        <span>+ CLIENTE</span>
+    </a>
+    <a href="{% url 'solicitudes:crear' %}" class="btn btn-vk-primary d-inline-flex align-items-center gap-1">
+        <span class="material-symbols-outlined" style="font-size: 14px;">add_circle</span>
+        <span>+ NUEVA SOLICITUD</span>
+    </a>
+{% endif %}
+{% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
+    <a href="{% url 'pagos:registrar' %}" class="btn btn-vk-primary d-inline-flex align-items-center gap-1">
+        <span class="material-symbols-outlined" style="font-size: 14px;">point_of_sale</span>
+        <span>COBRAR EN CAJA</span>
+    </a>
+{% endif %}
+{% endblock %}
 
 {% block content %}
-<!-- Área de dashboard en blanco lista para implementación -->
+<div class="d-flex flex-column gap-4">
+    <!-- Tarjetas de Indicadores Clave (KPIs) -->
+    <div class="row g-3">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="border border-dark bg-white p-3 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="font-mono text-uppercase text-secondary fw-semibold" style="font-size: 10px;">PADRÓN DE CLIENTES</span>
+                    <span class="material-symbols-outlined text-dark" style="font-size: 18px;">group</span>
+                </div>
+                <div class="font-mono fw-bold text-black" style="font-size: 24px;">
+                    {{ total_clientes }}
+                </div>
+                <div class="mt-2 pt-2 border-top border-dark d-flex justify-content-between align-items-center font-mono" style="font-size: 10px;">
+                    <span class="text-secondary">SOLICITUDES EN TRÁMITE: <strong>{{ solicitudes_pendientes }}</strong></span>
+                    <a href="{% url 'clientes:listado' %}" class="text-black fw-bold text-decoration-none">VER &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="border border-dark bg-white p-3 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="font-mono text-uppercase text-secondary fw-semibold" style="font-size: 10px;">SALDO CARTERA ACTIVA</span>
+                    <span class="material-symbols-outlined text-dark" style="font-size: 18px;">account_balance</span>
+                </div>
+                <div class="font-mono fw-bold text-black" style="font-size: 22px;">
+                    Bs. {{ saldo_cartera|floatformat:2 }}
+                </div>
+                <div class="mt-2 pt-2 border-top border-dark d-flex justify-content-between align-items-center font-mono" style="font-size: 10px;">
+                    <span class="text-secondary">CRÉDITOS ACTIVOS: <strong>{{ creditos_activos }}</strong></span>
+                    <a href="{% url 'creditos:listado' %}" class="text-black fw-bold text-decoration-none">CARTERA &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="border border-dark bg-white p-3 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="font-mono text-uppercase text-secondary fw-semibold" style="font-size: 10px;">TOTAL RECAUDADO EN CAJA</span>
+                    <span class="material-symbols-outlined text-dark" style="font-size: 18px;">payments</span>
+                </div>
+                <div class="font-mono fw-bold text-black" style="font-size: 22px;">
+                    Bs. {{ total_recaudado|floatformat:2 }}
+                </div>
+                <div class="mt-2 pt-2 border-top border-dark d-flex justify-content-between align-items-center font-mono" style="font-size: 10px;">
+                    <span class="text-secondary">COLOCADO: Bs. {{ monto_colocado|floatformat:0 }}</span>
+                    <a href="{% url 'pagos:listado' %}" class="text-black fw-bold text-decoration-none">PAGOS &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="border border-dark bg-white p-3 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="font-mono text-uppercase text-secondary fw-semibold" style="font-size: 10px;">ALERTA DE MOROSIDAD</span>
+                    <span class="material-symbols-outlined text-danger" style="font-size: 18px;">warning</span>
+                </div>
+                <div class="font-mono fw-bold text-danger" style="font-size: 24px;">
+                    {{ creditos_en_mora }} <span style="font-size: 12px;">EN MORA</span>
+                </div>
+                <div class="mt-2 pt-2 border-top border-dark d-flex justify-content-between align-items-center font-mono" style="font-size: 10px;">
+                    <span class="text-secondary">CONTROL RN09 ACTIVO</span>
+                    <a href="{% url 'pagos:control_mora' %}" class="text-danger fw-bold text-decoration-none">MONITOREAR &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bandejas Operativas en Tiempo Real -->
+    <div class="row g-4">
+        <!-- Últimas Solicitudes Radicadas -->
+        <div class="col-12 col-lg-6">
+            <div class="border border-dark bg-white h-100">
+                <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
+                    <span class="font-mono fw-bold text-uppercase text-black" style="font-size: 12px;">
+                        ÚLTIMAS SOLICITUDES RADICADAS (CU02)
+                    </span>
+                    <a href="{% url 'solicitudes:listado' %}" class="btn btn-vk-outline" style="font-size: 10px; padding: 2px 8px;">
+                        VER TODAS
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-vk">
+                        <thead>
+                            <tr>
+                                <th># ID</th>
+                                <th>CLIENTE</th>
+                                <th class="text-end">MONTO</th>
+                                <th class="text-center">ESTADO</th>
+                                <th class="text-end">ACCIÓN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in ultimas_solicitudes %}
+                            <tr>
+                                <td class="font-mono fw-bold">#{{ s.id }}</td>
+                                <td>
+                                    <div class="fw-semibold text-black">{{ s.cliente.nombres }} {{ s.cliente.apellidos }}</div>
+                                    <div class="font-mono text-secondary" style="font-size: 10px;">CI: {{ s.cliente.ci }}</div>
+                                </td>
+                                <td class="font-mono text-end fw-semibold">Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
+                                <td class="text-center">
+                                    {% if s.estado == "APROBADA" %}
+                                        <span class="badge-vk badge-vk-success">[ APROBADA ]</span>
+                                    {% elif s.estado == "RECHAZADA" %}
+                                        <span class="badge-vk badge-vk-danger">[ RECHAZADA ]</span>
+                                    {% elif s.estado == "EN_EVALUACION" %}
+                                        <span class="badge-vk badge-vk-warning">[ EN EVALUACIÓN ]</span>
+                                    {% else %}
+                                        <span class="badge-vk badge-vk-neutral">[ REGISTRADA ]</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'solicitudes:detalle' s.pk %}" class="btn btn-vk-outline font-mono" style="font-size: 10px; padding: 2px 8px;">
+                                        ABRIR
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-3 text-secondary font-mono">No hay solicitudes registradas.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimos Cobros en Ventanilla -->
+        <div class="col-12 col-lg-6">
+            <div class="border border-dark bg-white h-100">
+                <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
+                    <span class="font-mono fw-bold text-uppercase text-black" style="font-size: 12px;">
+                        ÚLTIMOS COBROS EN VENTANILLA (CU12)
+                    </span>
+                    <a href="{% url 'pagos:listado' %}" class="btn btn-vk-outline" style="font-size: 10px; padding: 2px 8px;">
+                        VER CAJA
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-vk">
+                        <thead>
+                            <tr>
+                                <th>RECIBO</th>
+                                <th>CRÉDITO / CUOTA</th>
+                                <th class="text-end">MONTO</th>
+                                <th class="text-end">FECHA</th>
+                                <th class="text-end">RECIBO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in ultimos_pagos %}
+                            <tr>
+                                <td class="font-mono fw-bold">{{ p.numero_recibo }}</td>
+                                <td>
+                                    <div class="font-mono fw-semibold text-black">{{ p.cuota.credito.numero_credito }} (C#{{ p.cuota.numero_cuota }})</div>
+                                    <div class="text-secondary" style="font-size: 10px;">{{ p.cuota.credito.solicitud.cliente.nombres }} {{ p.cuota.credito.solicitud.cliente.apellidos }}</div>
+                                </td>
+                                <td class="font-mono text-end fw-bold text-success">Bs. {{ p.monto|floatformat:2 }}</td>
+                                <td class="font-mono text-end text-secondary" style="font-size: 11px;">{{ p.fecha_pago|date:"d/m/Y H:i" }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'pagos:comprobante' p.pk %}" class="btn btn-vk-outline font-mono" style="font-size: 10px; padding: 2px 8px;">
+                                        VER
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-3 text-secondary font-mono">No se registran pagos recientes.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bitácora Reciente de Auditoría (RN12) -->
+    <div class="border border-dark bg-white">
+        <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
+            <span class="font-mono fw-bold text-uppercase text-black" style="font-size: 12px;">
+                TRAZABILIDAD Y BITÁCORA RECIENTE DE AUDITORÍA (RN12 / RNF06)
+            </span>
+            {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
+                <a href="{% url 'usuarios:auditoria_list' %}" class="btn btn-vk-outline" style="font-size: 10px; padding: 2px 8px;">
+                    BITÁCORA COMPLETA
+                </a>
+            {% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table-vk">
+                <thead>
+                    <tr>
+                        <th>FECHA Y HORA</th>
+                        <th>FUNCIONARIO</th>
+                        <th>OPERACIÓN</th>
+                        <th>ENTIDAD AFECTADA</th>
+                        <th class="text-center">RESULTADO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in ultimas_auditorias %}
+                    <tr>
+                        <td class="font-mono text-secondary">{{ a.fecha_hora|date:"d/m/Y H:i:s" }}</td>
+                        <td class="font-mono fw-semibold">
+                            {% if a.usuario %}
+                                {{ a.usuario.login }} ({{ a.usuario.get_rol_display }})
+                            {% else %}
+                                SISTEMA AUTOMÁTICO
+                            {% endif %}
+                        </td>
+                        <td class="font-mono fw-bold text-black">{{ a.operacion }}</td>
+                        <td class="font-mono">{{ a.entidad }} #{{ a.id_entidad }}</td>
+                        <td class="text-center">
+                            {% if a.resultado == "EXITOSO" %}
+                                <span class="badge-vk badge-vk-success">[ EXITOSO ]</span>
+                            {% else %}
+                                <span class="badge-vk badge-vk-danger">[ ERROR ]</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-3 text-secondary font-mono">Sin eventos de auditoría registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

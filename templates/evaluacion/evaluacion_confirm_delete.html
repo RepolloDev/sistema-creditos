@@ -1,0 +1,24 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Eliminar Evaluación #{{ object.id }}{% endblock %}
+{% block breadcrumb %}Evaluación / Eliminar #{{ object.id }}{% endblock %}
+{% block page_title %}Confirmar Eliminación de Dictamen{% endblock %}
+
+{% block dashboard_content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="bg-white border border-dark p-4">
+      <h6 class="fw-bold text-uppercase text-danger border-bottom border-dark pb-2 mb-3">
+        Confirmar Eliminación de Evaluación (Modo MVP)
+      </h6>
+      <p class="small">
+        ¿Está seguro que desea eliminar la <strong>Evaluación #{{ object.id }}</strong> asociada a la Solicitud #{{ object.solicitud.id }} ({{ object.solicitud.cliente.nombres }} {{ object.solicitud.cliente.apellidos }})?
+      </p>
+      <form method="post" class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+        {% csrf_token %}
+        <a href="{% url 'evaluacion:detalle' object.pk %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
+        <button type="submit" class="btn-vk-danger">Confirmar Eliminación</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

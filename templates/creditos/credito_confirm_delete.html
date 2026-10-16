@@ -1,0 +1,27 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Eliminar Crédito #{{ object.id }}{% endblock %}
+{% block breadcrumb %}Créditos / Eliminar #{{ object.id }}{% endblock %}
+{% block page_title %}Confirmar Eliminación de Crédito{% endblock %}
+
+{% block dashboard_content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="bg-white border border-dark p-4">
+      <h6 class="fw-bold text-uppercase text-danger border-bottom border-dark pb-2 mb-3">
+        Confirmar Eliminación de Operación Crediticia (Modo MVP)
+      </h6>
+      <p class="small">
+        ¿Está seguro que desea eliminar el <strong>Crédito #{{ object.id }}</strong> de <strong>{{ object.solicitud.cliente.nombres }} {{ object.solicitud.cliente.apellidos }}</strong> por <span class="font-mono fw-bold">Bs. {{ object.monto_aprobado|floatformat:2 }}</span>?
+      </p>
+      <p class="small text-muted">
+        Se eliminarán todas sus cuotas del cronograma, su contrato y los pagos asociados. La solicitud volverá al estado <code>EN_EVALUACION</code>.
+      </p>
+      <form method="post" class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+        {% csrf_token %}
+        <a href="{% url 'creditos:detalle' object.pk %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
+        <button type="submit" class="btn-vk-danger">Confirmar Eliminación</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

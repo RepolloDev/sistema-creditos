@@ -1,8 +1,150 @@
-{% extends "base.html" %}
+{% extends "base_dashboard.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block breadcrumb %}Evaluación / {{ titulo }}{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
 
-{% block title %}Registrar Evaluación - Banco Volkskas S.A.{% endblock %}
-{% block page_title %}EMITIR DICTAMEN DE EVALUACIÓN{% endblock %}
-{% block module_name %}EVALUACIÓN (CU04 / CU05){% endblock %}
+{% block top_actions %}
+<a href="{% url 'evaluacion:listado' %}" class="btn-vk-outline text-decoration-none">Volver a Evaluaciones</a>
+{% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
+<div class="row g-4">
+  <!-- Columna Izquierda: Formulario de Evaluación -->
+  <div class="col-lg-7">
+    <div class="bg-white border border-dark p-4">
+      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-4" style="font-size: 0.8rem; letter-spacing: 0.05em;">
+        Análisis de Capacidad de Pago y Riesgo Crediticio
+      </h6>
+
+      <form method="post" novalidate id="form-evaluacion">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger rounded-0 border-dark small">
+          {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="row g-3">
+          {% for field in form %}
+          <div class="{% if field.name == 'solicitud' %}col-12{% else %}col-md-6{% endif %}">
+            <label for="{{ field.id_for_label }}" class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.04em;">
+              {{ field.label }}
+            </label>
+            {{ field }}
+            {% if field.errors %}
+            <div class="text-danger small mt-1 fw-medium">{{ field.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Simulador en Vivo de Capacidad de Pago -->
+        <div class="bg-light border border-dark p-3 mt-4">
+          <div class="fw-bold text-uppercase small mb-2">Cálculo Automático en Tiempo Real</div>
+          <div class="row text-center">
+            <div class="col-4 border-end border-dark">
+              <div class="small text-muted text-uppercase" style="font-size: 0.65rem;">Capacidad Neta (I - G)</div>
+              <div class="font-mono fw-bold fs-6" id="calc-capacidad">Bs. 0.00</div>
+            </div>
+            <div class="col-4 border-end border-dark">
+              <div class="small text-muted text-uppercase" style="font-size: 0.65rem;">Cuota Máx. (40% Cap.)</div>
+              <div class="font-mono fw-bold fs-6" id="calc-cuota-max">Bs. 0.00</div>
+            </div>
+            <div class="col-4">
+              <div class="small text-muted text-uppercase" style="font-size: 0.65rem;">Cuota Estimada (18% Anual)</div>
+              <div class="font-mono fw-bold fs-6">
+                {% if cuota_estimada %}Bs. {{ cuota_estimada|floatformat:2 }}{% else %}Seleccione Solicitud{% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+          <a href="{% url 'evaluacion:listado' %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
+          <button type="submit" class="btn-vk-primary">{{ boton_texto }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Columna Derecha: Reporte Central de Riesgos (Infocred / ASFI) -->
+  <div class="col-lg-5">
+    {% if solicitud_preseleccionada %}
+    <div class="bg-white border border-dark p-3 mb-4">
+      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.78rem; letter-spacing: 0.05em;">
+        Resumen de Solicitud #{{ solicitud_preseleccionada.id }}
+      </h6>
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted text-uppercase">Cliente</dt>
+        <dd class="col-7 fw-bold">{{ solicitud_preseleccionada.cliente.nombres }} {{ solicitud_preseleccionada.cliente.apellidos }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">C.I.</dt>
+        <dd class="col-7 font-mono">{{ solicitud_preseleccionada.cliente.ci }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Monto Solicitado</dt>
+        <dd class="col-7 font-mono fw-bold">Bs. {{ solicitud_preseleccionada.monto_solicitado|floatformat:2 }}</dd>
+
+        <dt class="col-5 text-muted text-uppercase">Plazo</dt>
+        <dd class="col-7 font-mono">{{ solicitud_preseleccionada.plazo_meses }} meses</dd>
+      </dl>
+    </div>
+    {% endif %}
+
+    {% if buro %}
+    <div class="bg-white border border-dark p-3">
+      <div class="d-flex justify-content-between align-items-center border-bottom border-dark pb-2 mb-3">
+        <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Consulta Central de Riesgos (ASFI)</span>
+        <span class="badge-vk {% if buro.nivel_riesgo == 'BAJO' %}badge-vk-success{% elif buro.nivel_riesgo == 'MEDIO' %}badge-vk-warning{% else %}badge-vk-danger{% endif %}">
+          Riesgo {{ buro.nivel_riesgo }}
+        </span>
+      </div>
+      <dl class="row mb-0 small">
+        <dt class="col-6 text-muted text-uppercase">Score Crediticio</dt>
+        <dd class="col-6 font-mono fw-bold">{{ buro.score }} / 850</dd>
+
+        <dt class="col-6 text-muted text-uppercase">Deuda Sistema Financiero</dt>
+        <dd class="col-6 font-mono">Bs. {{ buro.deuda_vigente|floatformat:2 }}</dd>
+
+        <dt class="col-6 text-muted text-uppercase">Entidades Reportantes</dt>
+        <dd class="col-6 font-mono">{{ buro.entidades_deuda }}</dd>
+
+        <dt class="col-6 text-muted text-uppercase">Reporta Mora Activa</dt>
+        <dd class="col-6 fw-bold {% if buro.tiene_mora %}text-danger{% else %}text-success{% endif %}">
+          {% if buro.tiene_mora %}SÍ (ALERTA){% else %}NO{% endif %}
+        </dd>
+
+        <dt class="col-6 text-muted text-uppercase">Nivel Sugerido</dt>
+        <dd class="col-6 font-mono fw-bold">{{ buro.nivel_riesgo }}</dd>
+      </dl>
+      <div class="mt-2 pt-2 border-top border-dark small text-muted">
+        {{ buro.observaciones }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const inputIngresos = document.getElementById("id_ingresos");
+    const inputGastos = document.getElementById("id_gastos");
+    const elCapacidad = document.getElementById("calc-capacidad");
+    const elCuotaMax = document.getElementById("calc-cuota-max");
+
+    function actualizarCalculo() {
+      const ing = parseFloat(inputIngresos?.value || 0);
+      const gas = parseFloat(inputGastos?.value || 0);
+      const cap = ing - gas;
+      const maxCuota = cap > 0 ? cap * 0.40 : 0;
+      if (elCapacidad) elCapacidad.textContent = "Bs. " + cap.toFixed(2);
+      if (elCuotaMax) elCuotaMax.textContent = "Bs. " + maxCuota.toFixed(2);
+    }
+
+    if (inputIngresos && inputGastos) {
+      inputIngresos.addEventListener("input", actualizarCalculo);
+      inputGastos.addEventListener("input", actualizarCalculo);
+      actualizarCalculo();
+    }
+  });
+</script>
 {% endblock %}

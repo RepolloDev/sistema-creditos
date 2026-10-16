@@ -1,8 +1,41 @@
-{% extends "base.html" %}
+{% extends "base_dashboard.html" %}
+{% block title %}Registrar Garantía - Solicitud #{{ solicitud.id }}{% endblock %}
+{% block breadcrumb %}Solicitudes / #{{ solicitud.id }} / Nueva Garantía{% endblock %}
+{% block page_title %}Asociar Garantía a Solicitud #{{ solicitud.id }}{% endblock %}
 
-{% block title %}Registrar Garantía - Banco Volkskas S.A.{% endblock %}
-{% block page_title %}REGISTRAR GARANTÍA DE SOLICITUD{% endblock %}
-{% block module_name %}SOLICITUDES (CU06 / RF07){% endblock %}
+{% block top_actions %}
+<a href="{% url 'solicitudes:detalle' solicitud.pk %}" class="btn-vk-outline text-decoration-none">Volver a la Solicitud</a>
+{% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="bg-white border border-dark p-4">
+      <div class="border-bottom border-dark pb-2 mb-3">
+        <div class="fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.05em;">Respaldo Patrimonial / Personal</div>
+        <div class="small text-muted">Solicitante: <strong>{{ solicitud.cliente.nombres }} {{ solicitud.cliente.apellidos }}</strong> ({{ solicitud.cliente.ci }}) — Monto: <span class="font-mono">Bs. {{ solicitud.monto_solicitado|floatformat:2 }}</span></div>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.04em;">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+          <div class="text-danger small mt-1 fw-medium">{{ field.errors|striptags }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+          <a href="{% url 'solicitudes:detalle' solicitud.pk %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
+          <button type="submit" class="btn-vk-primary">Guardar Garantía</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
