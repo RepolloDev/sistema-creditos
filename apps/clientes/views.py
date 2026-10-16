@@ -1,17 +1,23 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q, ProtectedError
-from django.shortcuts import redirect
+from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from usuarios.models import Auditoria
+from usuarios.models import Auditoria, Usuario
+from usuarios.views import RolRequiredMixin
 from .forms import ClienteForm
 from .models import Cliente
 from .services import obtener_perfil_financiero
 
 
-class ClienteListView(LoginRequiredMixin, ListView):
+class ClienteListView(RolRequiredMixin, ListView):
+    roles_permitidos = [
+        Usuario.Rol.OFICIAL,
+        Usuario.Rol.ANALISTA,
+        Usuario.Rol.JEFE,
+        Usuario.Rol.CAJERO,
+        Usuario.Rol.GERENTE,
+    ]
     model = Cliente
     template_name = "clientes/cliente_list.html"
     context_object_name = "clientes"
@@ -37,7 +43,10 @@ class ClienteListView(LoginRequiredMixin, ListView):
         return context
 
 
-class ClienteCreateView(LoginRequiredMixin, CreateView):
+class ClienteCreateView(RolRequiredMixin, CreateView):
+    """CU01 / RF01: Registrar cliente (Actor: Oficial de Crédito)."""
+
+    roles_permitidos = [Usuario.Rol.OFICIAL]
     model = Cliente
     form_class = ClienteForm
     template_name = "clientes/cliente_form.html"
@@ -65,7 +74,14 @@ class ClienteCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class ClienteDetailView(LoginRequiredMixin, DetailView):
+class ClienteDetailView(RolRequiredMixin, DetailView):
+    roles_permitidos = [
+        Usuario.Rol.OFICIAL,
+        Usuario.Rol.ANALISTA,
+        Usuario.Rol.JEFE,
+        Usuario.Rol.CAJERO,
+        Usuario.Rol.GERENTE,
+    ]
     model = Cliente
     template_name = "clientes/cliente_detail.html"
     context_object_name = "cliente"
@@ -81,7 +97,10 @@ class ClienteDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ClienteUpdateView(LoginRequiredMixin, UpdateView):
+class ClienteUpdateView(RolRequiredMixin, UpdateView):
+    """RF02: Actualizar cliente (Actor: Oficial de Crédito)."""
+
+    roles_permitidos = [Usuario.Rol.OFICIAL]
     model = Cliente
     form_class = ClienteForm
     template_name = "clientes/cliente_form.html"
@@ -111,7 +130,8 @@ class ClienteUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
 
-class ClienteDeleteView(LoginRequiredMixin, DeleteView):
+class ClienteDeleteView(RolRequiredMixin, DeleteView):
+    roles_permitidos = [Usuario.Rol.OFICIAL]
     model = Cliente
     template_name = "clientes/cliente_confirm_delete.html"
     success_url = reverse_lazy("clientes:listado")

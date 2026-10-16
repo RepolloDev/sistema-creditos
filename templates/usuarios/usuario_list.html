@@ -1,122 +1,57 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Administración de Usuarios - Banco Volkskas S.A.{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
 
-{% block page_title %}GESTIÓN DE USUARIOS Y CONTROL DE ACCESO (CU15){% endblock %}
-{% block module_name %}SEGURIDAD Y RBAC{% endblock %}
-
-{% block header_actions %}
-<a href="{% url 'usuarios:auditoria_list' %}" class="btn btn-vk-outline d-inline-flex align-items-center gap-1 me-1">
-    <span class="material-symbols-outlined" style="font-size: 15px;">history</span>
-    <span>BITÁCORA DE AUDITORÍA</span>
-</a>
-<a href="{% url 'usuarios:usuario_create' %}" class="btn btn-vk-primary d-inline-flex align-items-center gap-1">
-    <span class="material-symbols-outlined" style="font-size: 15px;">person_add</span>
-    <span>+ NUEVO USUARIO</span>
-</a>
+{% block actions %}
+<a href="{% url 'usuarios:auditoria_list' %}" role="button" class="outline">Bitácora de Auditoría</a>
+<a href="{% url 'usuarios:usuario_create' %}" role="button">+ Nuevo Usuario</a>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column gap-3">
-    <!-- Barra de Búsqueda y Filtros -->
-    <div class="border border-dark bg-white p-3">
-        <form method="get" class="row g-2 align-items-center">
-            <div class="col-12 col-md-6 col-lg-5">
-                <div class="input-group">
-                    <span class="input-group-text bg-white border-dark rounded-0 p-1">
-                        <span class="material-symbols-outlined text-secondary" style="font-size: 16px;">search</span>
-                    </span>
-                    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por login o nombre..." class="form-control border-dark font-mono" style="height: 32px; font-size: 12px;">
-                </div>
-            </div>
+<form method="get">
+  <div class="grid">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar usuario o nombre...">
+    <select name="rol">
+      <option value="">Todos los roles</option>
+      {% for code, label in roles %}
+      <option value="{{ code }}" {% if selected_rol == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filtrar</button>
+  </div>
+</form>
 
-            <div class="col-12 col-md-4 col-lg-3">
-                <select name="rol" class="form-select border-dark" style="height: 32px; font-size: 12px;">
-                    <option value="">-- Todos los roles --</option>
-                    {% for code, label in roles %}
-                        <option value="{{ code }}" {% if selected_rol == code %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="col-auto">
-                <button type="submit" class="btn btn-vk-primary" style="height: 32px; padding: 4px 14px;">
-                    FILTRAR
-                </button>
-                {% if q or selected_rol %}
-                    <a href="{% url 'usuarios:usuario_list' %}" class="btn btn-vk-outline ms-1" style="height: 32px; padding: 4px 10px;">
-                        LIMPIAR
-                    </a>
-                {% endif %}
-            </div>
-        </form>
-    </div>
-
-    <!-- Tabla de Usuarios -->
-    <div class="border border-dark bg-white">
-        <div class="table-responsive">
-            <table class="table-vk">
-                <thead>
-                    <tr>
-                        <th>USUARIO (LOGIN)</th>
-                        <th>NOMBRE COMPLETO</th>
-                        <th>ROL ASIGNADO</th>
-                        <th class="text-center">ESTADO</th>
-                        <th class="text-end">ACCIONES</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in usuarios %}
-                    <tr>
-                        <td class="font-mono fw-bold text-black">{{ u.login }}</td>
-                        <td class="fw-semibold text-black">{{ u.nombre_completo }}</td>
-                        <td>
-                            <span class="badge-vk badge-vk-neutral font-mono">
-                                [ {{ u.get_rol_display|upper }} ]
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            {% if u.activo %}
-                                <span class="badge-vk badge-vk-neutral text-success">[ ACTIVO ]</span>
-                            {% else %}
-                                <span class="badge-vk badge-vk-danger">[ INACTIVO ]</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            <a href="{% url 'usuarios:usuario_update' u.pk %}" class="btn btn-vk-outline font-mono me-1" style="font-size: 10px; padding: 2px 8px;">
-                                EDITAR
-                            </a>
-                            {% if u != request.user %}
-                                <a href="{% url 'usuarios:usuario_delete' u.pk %}" class="btn btn-vk-danger font-mono" style="font-size: 10px; padding: 2px 8px;">
-                                    ELIMINAR
-                                </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-4 text-secondary font-mono">
-                            No se encontraron usuarios registrados con el criterio de búsqueda.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        {% if is_paginated %}
-        <div class="border-top border-dark p-2 bg-light d-flex justify-content-between align-items-center font-mono" style="font-size: 11px;">
-            <span>PÁGINA {{ page_obj.number }} DE {{ page_obj.paginator.num_pages }}</span>
-            <div class="btn-group">
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_rol %}&rol={{ selected_rol }}{% endif %}" class="btn btn-vk-outline py-1 px-2" style="font-size: 10px;">ANTERIOR</a>
-                {% endif %}
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_rol %}&rol={{ selected_rol }}{% endif %}" class="btn btn-vk-outline py-1 px-2" style="font-size: 10px;">SIGUIENTE</a>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
-</div>
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>Usuario</th>
+        <th>Nombre Completo</th>
+        <th>Rol</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in usuarios %}
+      <tr>
+        <td><strong>{{ u.login }}</strong></td>
+        <td>{{ u.nombre_completo }}</td>
+        <td>{{ u.get_rol_display }}</td>
+        <td>{% if u.activo %}Activo{% else %}Inactivo{% endif %}</td>
+        <td>
+          <div class="actions">
+            <a href="{% url 'usuarios:usuario_update' u.pk %}" role="button" class="outline">Editar</a>
+            {% if u != request.user %}
+            <a href="{% url 'usuarios:usuario_delete' u.pk %}" role="button" class="outline danger">Eliminar</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">Sin usuarios registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
 {% endblock %}

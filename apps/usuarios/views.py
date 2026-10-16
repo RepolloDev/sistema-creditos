@@ -88,6 +88,34 @@ class SoloAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
         return redirect("usuarios:dashboard")
 
 
+class RolRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """
+    Mixin general de Control de Acceso Basado en Roles (RBAC - RNF01 / RNF02).
+    Verifica que el usuario autenticado posea uno de los roles listados en `roles_permitidos`
+    (o sea ADMINISTRADOR / superusuario).
+    """
+
+    roles_permitidos: list[str] = []
+
+    def test_func(self):
+        usuario = self.request.user
+        if not usuario.is_authenticated:
+            return False
+        if usuario.is_superuser or usuario.rol == Usuario.Rol.ADMINISTRADOR:
+            return True
+        return usuario.rol in self.roles_permitidos
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        messages.error(
+            self.request,
+            f"Acceso restringido para el rol {self.request.user.get_rol_display()}. Operación no autorizada según perfil (RNF01).",
+        )
+        return redirect("dashboard")
+
+
+
 # ------------------------------------------------------------------------------
 # INICIO Y CIERRE DE SESIÓN
 # ------------------------------------------------------------------------------
@@ -229,43 +257,91 @@ class UsuarioDeleteView(SoloAdminMixin, DeleteView):
 # ------------------------------------------------------------------------------
 class DashboardView(LoginRequiredMixin, TemplateView):
     """
-    Vista central del Dashboard Operativo con métricas en tiempo real.
+    Vista central del Dashboard Operativo con métricas segmentadas según rol (RBAC).
     """
 
     template_name = "dashboard.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["total_clientes"] = Cliente.objects.count()
-        context["solicitudes_pendientes"] = SolicitudCredito.objects.filter(
-            estado__in=["REGISTRADA", "EN_EVALUACION"]
-        ).count()
-        context["creditos_activos"] = Credito.objects.filter(
-            estado__in=["VIGENTE", "EN_MORA"]
-        ).count()
-        context["creditos_en_mora"] = Credito.objects.filter(estado="EN_MORA").count()
+        user = self.request.user
+        rol = user.rol if user.is_authenticated else ""
+        is_admin = user.is_superuser or rol == Usuario.Rol.ADMINISTRADOR
 
-        cartera_agg = Credito.objects.filter(estado__in=["VIGENTE", "EN_MORA"]).aggregate(
-            saldo_total=Sum("saldo_capital"),
-            colocado_total=Sum("monto_aprobado"),
-        )
-        context["saldo_cartera"] = cartera_agg["saldo_total"] or 0
-        context["monto_colocado"] = cartera_agg["colocado_total"] or 0
+        # Segmentación estricta de visibilidad por rol
+        puede_ver_clientes = is_admin or rol in [
+            Usuario.Rol.OFICIAL,
+            Usuario.Rol.JEFE,
+            Usuario.Rol.GERENTE,
+        ]
+        puede_ver_solicitudes = is_admin or rol in [
+            Usuario.Rol.OFICIAL,
+            Usuario.Rol.ANALISTA,
+            Usuario.Rol.JEFE,
+            Usuario.Rol.GERENTE,
+        ]
+        puede_ver_cartera = is_admin or rol in [
+            Usuario.Rol.JEFE,
+            Usuario.Rol.GERENTE,
+        ]
+        puede_ver_caja = is_admin or rol in [
+            Usuario.Rol.CAJERO,
+            Usuario.Rol.JEFE,
+            Usuario.Rol.GERENTE,
+        ]
+        puede_ver_mora = is_admin or rol in [
+            Usuario.Rol.CAJERO,
+            Usuario.Rol.JEFE,
+            Usuario.Rol.GERENTE,
+        ]
 
-        recaudado_agg = Pago.objects.aggregate(total=Sum("monto"))
-        context["total_recaudado"] = recaudado_agg["total"] or 0
+        context["puede_ver_clientes"] = puede_ver_clientes
+        context["puede_ver_solicitudes"] = puede_ver_solicitudes
+        context["puede_ver_cartera"] = puede_ver_cartera
+        context["puede_ver_caja"] = puede_ver_caja
+        context["puede_ver_mora"] = puede_ver_mora
 
-        context["ultimas_solicitudes"] = (
-            SolicitudCredito.objects.select_related("cliente")
-            .order_by("-fecha_solicitud")[:6]
-        )
-        context["ultimos_pagos"] = (
-            Pago.objects.select_related("cuota__credito__solicitud__cliente")
-            .order_by("-fecha_pago")[:6]
-        )
-        context["ultimas_auditorias"] = (
-            Auditoria.objects.select_related("usuario").order_by("-fecha_hora")[:8]
-        )
+        if puede_ver_clientes:
+            context["total_clientes"] = Cliente.objects.count()
+
+        if puede_ver_solicitudes:
+            context["solicitudes_pendientes"] = SolicitudCredito.objects.filter(
+                estado__in=["REGISTRADA", "EN_EVALUACION"]
+            ).count()
+            context["ultimas_solicitudes"] = (
+                SolicitudCredito.objects.select_related("cliente")
+                .order_by("-fecha_solicitud")[:5]
+            )
+
+        if rol == Usuario.Rol.ANALISTA:
+            from evaluacion.models import EvaluacionCredito
+            context["evaluaciones_realizadas"] = EvaluacionCredito.objects.count()
+
+        if rol == Usuario.Rol.OFICIAL:
+            context["creditos_por_desembolsar"] = Credito.objects.filter(estado="APROBADO").count()
+
+        if puede_ver_cartera:
+            cartera_agg = Credito.objects.filter(estado__in=["VIGENTE", "EN_MORA"]).aggregate(
+                saldo_total=Sum("saldo_capital"),
+                colocado_total=Sum("monto_aprobado"),
+            )
+            context["saldo_cartera"] = cartera_agg["saldo_total"] or 0
+            context["monto_colocado"] = cartera_agg["colocado_total"] or 0
+            context["creditos_activos"] = Credito.objects.filter(
+                estado__in=["VIGENTE", "EN_MORA"]
+            ).count()
+
+        if puede_ver_caja:
+            recaudado_agg = Pago.objects.aggregate(total=Sum("monto"))
+            context["total_recaudado"] = recaudado_agg["total"] or 0
+            context["ultimos_pagos"] = (
+                Pago.objects.select_related("cuota__credito__solicitud__cliente")
+                .order_by("-fecha_pago")[:5]
+            )
+
+        if puede_ver_mora:
+            context["creditos_en_mora"] = Credito.objects.filter(estado="EN_MORA").count()
+
         return context
 
 
@@ -311,6 +387,6 @@ class AuditoriaListView(SoloAdminMixin, ListView):
 def dashboard_redirect_view(request):
     """
     Función sencilla que recibe al usuario en /usuarios/dashboard/
-    y lo redirige a la página principal del banco ('home' o '/').
+    y lo redirige a la página principal del banco ('dashboard' o '/').
     """
-    return redirect("home")
+    return redirect("dashboard")

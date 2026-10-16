@@ -1,25 +1,26 @@
 from datetime import date
 from decimal import Decimal
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db.models import Q, Sum
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView
 
 from creditos.models import Credito, Cuota
-from usuarios.models import Auditoria
+from usuarios.models import Usuario
+from usuarios.views import RolRequiredMixin
 from .forms import PagoForm
 from .models import Pago
 from .services import calcular_interes_penal, ejecutar_control_mora, registrar_pago_cuota
 
 
-class PagoListView(LoginRequiredMixin, ListView):
+class PagoListView(RolRequiredMixin, ListView):
     """
     Registro histórico de pagos / transacciones en ventanilla de caja.
     """
 
+    roles_permitidos = [Usuario.Rol.CAJERO, Usuario.Rol.JEFE, Usuario.Rol.GERENTE]
     model = Pago
     template_name = "pagos/pago_list.html"
     context_object_name = "pagos"
@@ -53,11 +54,12 @@ class PagoListView(LoginRequiredMixin, ListView):
         return context
 
 
-class ComprobantePagoView(LoginRequiredMixin, DetailView):
+class ComprobantePagoView(RolRequiredMixin, DetailView):
     """
     CU12 / RF13: Emisión de comprobante oficial de pago para el cliente.
     """
 
+    roles_permitidos = [Usuario.Rol.CAJERO, Usuario.Rol.JEFE, Usuario.Rol.GERENTE]
     model = Pago
     template_name = "pagos/comprobante.html"
     context_object_name = "pago"
@@ -78,11 +80,12 @@ class ComprobantePagoView(LoginRequiredMixin, DetailView):
         return context
 
 
-class RegistrarPagoView(LoginRequiredMixin, CreateView):
+class RegistrarPagoView(RolRequiredMixin, CreateView):
     """
     CU12 / RF13 / RN08: Registro de abono de cuota en ventanilla por Cajero.
     """
 
+    roles_permitidos = [Usuario.Rol.CAJERO]
     model = Pago
     form_class = PagoForm
     template_name = "pagos/pago_form.html"
@@ -104,7 +107,6 @@ class RegistrarPagoView(LoginRequiredMixin, CreateView):
                 initial["cuota"] = cuota.pk
                 initial["monto"] = cuota.saldo_cuota
         elif credito_id:
-            # RN08: Seleccionar la cuota exigible más antigua impaga
             cuota = (
                 Cuota.objects.filter(credito_id=credito_id)
                 .exclude(estado="PAGADA")
@@ -155,18 +157,19 @@ class RegistrarPagoView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form)
 
 
-class ControlMoraView(LoginRequiredMixin, TemplateView):
+class ControlMoraView(RolRequiredMixin, TemplateView):
     """
     CU13 / RF14 / RN09: Panel de monitoreo y ejecución de control de mora.
     """
 
+    roles_permitidos = [Usuario.Rol.CAJERO, Usuario.Rol.JEFE, Usuario.Rol.GERENTE]
     template_name = "pagos/control_mora.html"
 
     def post(self, request, *args, **kwargs):
         resultado = ejecutar_control_mora(usuario=request.user)
         messages.warning(
             request,
-            f"Barrido de mora completado ({resultado['fecha_corte']}): {resultado['cuotas_marcadas_vencidas']} nuevas cuotas marcadas VENCIDAS y {resultado['creditos_pasados_a_mora']} créditos actualizados a EN_MORA (RN09).",
+            f"Barrido de mora completado: {resultado['cuotas_marcadas_vencidas']} nuevas cuotas marcadas VENCIDAS y {resultado['creditos_pasados_a_mora']} créditos actualizados a EN_MORA (RN09).",
         )
         return redirect("pagos:control_mora")
 
@@ -196,11 +199,11 @@ class ControlMoraView(LoginRequiredMixin, TemplateView):
         context["lista_mora"] = lista_mora
         context["total_creditos_mora"] = Credito.objects.filter(estado="EN_MORA").count()
         context["total_cuotas_vencidas"] = len(lista_mora)
-        context["fecha_hoy"] = hoy
         return context
 
 
-class PagoDeleteView(LoginRequiredMixin, DeleteView):
+class PagoDeleteView(RolRequiredMixin, DeleteView):
+    roles_permitidos = [Usuario.Rol.CAJERO]
     model = Pago
     template_name = "pagos/pago_confirm_delete.html"
     success_url = reverse_lazy("pagos:listado")

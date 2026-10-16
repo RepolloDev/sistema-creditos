@@ -1,124 +1,40 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Dictamen de Evaluación #{{ evaluacion.id }}{% endblock %}
-{% block breadcrumb %}Evaluación / Dictamen #{{ evaluacion.id }}{% endblock %}
-{% block page_title %}Dictamen Técnico de Evaluación #{{ evaluacion.id }}{% endblock %}
 
-{% block top_actions %}
-<div class="d-flex gap-2">
-  <a href="{% url 'evaluacion:consultar_riesgo' evaluacion.pk %}" class="btn-vk-outline text-decoration-none">Reconsultar Central de Riesgos</a>
-  {% if evaluacion.solicitud.estado == 'EN_EVALUACION' or evaluacion.solicitud.estado == 'REGISTRADA' %}
-  <a href="{% url 'creditos:aprobar' evaluacion.solicitud.pk %}" class="btn-vk-primary text-decoration-none">Aprobar Solicitud</a>
-  <a href="{% url 'creditos:rechazar' evaluacion.solicitud.pk %}" class="btn-vk-danger text-decoration-none">Rechazar Solicitud</a>
+{% block page_title %}Dictamen de Evaluación #{{ evaluacion.id }}{% endblock %}
+
+{% block actions %}
+{% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
+<a href="{% url 'evaluacion:consultar_riesgo' evaluacion.pk %}" role="button" class="outline">Consultar Central de Riesgos</a>
+{% endif %}
+{% if evaluacion.solicitud.estado == 'EN_EVALUACION' or evaluacion.solicitud.estado == 'REGISTRADA' %}
+  {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
+  <a href="{% url 'creditos:aprobar' evaluacion.solicitud.pk %}" role="button">Aprobar</a>
+  <a href="{% url 'creditos:rechazar' evaluacion.solicitud.pk %}" role="button" class="outline danger">Rechazar</a>
   {% endif %}
-  <a href="{% url 'evaluacion:eliminar' evaluacion.pk %}" class="btn-vk-danger text-decoration-none">Eliminar</a>
-  <a href="{% url 'evaluacion:listado' %}" class="btn-vk-outline text-decoration-none">Volver</a>
-</div>
+{% endif %}
+{% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
+<a href="{% url 'evaluacion:eliminar' evaluacion.pk %}" role="button" class="outline danger">Eliminar</a>
+{% endif %}
+<a href="{% url 'evaluacion:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
-{% block dashboard_content %}
-<!-- Tarjetas de Indicadores Financieros -->
-<div class="row g-3 mb-4">
-  <div class="col-md-3">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem;">Capacidad de Pago Neta</div>
-      <div class="fs-4 fw-bold font-mono mt-1">Bs. {{ evaluacion.capacidad_pago|floatformat:2 }}</div>
-      <div class="small text-muted mt-1">Ingresos Bs. {{ evaluacion.ingresos|floatformat:0 }} - Gastos Bs. {{ evaluacion.gastos|floatformat:0 }}</div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem;">Límite Cuota (40% Cap.)</div>
-      <div class="fs-4 fw-bold font-mono mt-1">Bs. {{ cuota_maxima|floatformat:2 }}</div>
-      <div class="small text-muted mt-1">Tope prudencial mensual</div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem;">Cuota Mensual Estimada</div>
-      <div class="fs-4 fw-bold font-mono mt-1 {% if viable %}text-success{% else %}text-danger{% endif %}">Bs. {{ cuota_estimada|floatformat:2 }}</div>
-      <div class="small text-muted mt-1">{% if viable %}Dentro del margen prudencial{% else %}Excede el 40% de capacidad{% endif %}</div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem;">Dictamen / Riesgo</div>
-      <div class="mt-2 d-flex gap-2 align-items-center">
-        <span class="badge-vk {% if evaluacion.nivel_riesgo == 'BAJO' %}badge-vk-success{% elif evaluacion.nivel_riesgo == 'MEDIO' %}badge-vk-warning{% else %}badge-vk-danger{% endif %}">
-          RIESGO {{ evaluacion.get_nivel_riesgo_display }}
-        </span>
-        <span class="badge-vk {% if evaluacion.resultado == 'FAVORABLE' %}badge-vk-success{% else %}badge-vk-danger{% endif %}">
-          {{ evaluacion.get_resultado_display }}
-        </span>
-      </div>
-      <div class="small text-muted mt-2 font-mono">Fecha: {{ evaluacion.fecha_evaluacion|date:"d/m/Y" }}</div>
-    </div>
-  </div>
-</div>
+{% block content %}
+<div class="grid">
+  <article>
+    <header><strong>Resultado Financiero</strong></header>
+    <p><strong>Solicitud:</strong> <a href="{% url 'solicitudes:detalle' evaluacion.solicitud.pk %}">#{{ evaluacion.solicitud.id }}</a> ({{ evaluacion.solicitud.cliente.nombres }} {{ evaluacion.solicitud.cliente.apellidos }})</p>
+    <p><strong>Ingresos:</strong> Bs. {{ evaluacion.ingresos|floatformat:2 }} | <strong>Gastos:</strong> Bs. {{ evaluacion.gastos|floatformat:2 }}</p>
+    <p><strong>Capacidad de Pago:</strong> Bs. {{ evaluacion.capacidad_pago|floatformat:2 }} (Cuota máx. 40%: Bs. {{ cuota_maxima|floatformat:2 }})</p>
+    <p><strong>Cuota Estimada:</strong> Bs. {{ cuota_estimada|floatformat:2 }}</p>
+    <p><strong>Nivel de Riesgo:</strong> {{ evaluacion.get_nivel_riesgo_display }} | <strong>Dictamen:</strong> {{ evaluacion.get_resultado_display }}</p>
+  </article>
 
-<div class="row g-4">
-  <!-- Detalle de Solicitud Evaluada -->
-  <div class="col-lg-6">
-    <div class="bg-white border border-dark p-3 h-100">
-      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.78rem; letter-spacing: 0.05em;">
-        Datos de la Solicitud Evaluada (#{{ evaluacion.solicitud.id }})
-      </h6>
-      <dl class="row mb-0 small">
-        <dt class="col-5 text-muted text-uppercase">Cliente</dt>
-        <dd class="col-7 fw-bold">
-          <a href="{% url 'clientes:detalle' evaluacion.solicitud.cliente.pk %}" class="text-dark">
-            {{ evaluacion.solicitud.cliente.nombres }} {{ evaluacion.solicitud.cliente.apellidos }}
-          </a>
-        </dd>
-
-        <dt class="col-5 text-muted text-uppercase">Cédula (C.I.)</dt>
-        <dd class="col-7 font-mono">{{ evaluacion.solicitud.cliente.ci }}</dd>
-
-        <dt class="col-5 text-muted text-uppercase">Monto Solicitado</dt>
-        <dd class="col-7 font-mono fw-bold">Bs. {{ evaluacion.solicitud.monto_solicitado|floatformat:2 }}</dd>
-
-        <dt class="col-5 text-muted text-uppercase">Plazo Solicitado</dt>
-        <dd class="col-7 font-mono">{{ evaluacion.solicitud.plazo_meses }} meses</dd>
-
-        <dt class="col-5 text-muted text-uppercase">Destino</dt>
-        <dd class="col-7">{{ evaluacion.solicitud.destino }}</dd>
-
-        <dt class="col-5 text-muted text-uppercase">Estado Solicitud</dt>
-        <dd class="col-7">
-          <span class="badge-vk badge-vk-neutral">{{ evaluacion.solicitud.get_estado_display }}</span>
-        </dd>
-      </dl>
-      <div class="mt-3 pt-3 border-top border-dark">
-        <a href="{% url 'solicitudes:detalle' evaluacion.solicitud.pk %}" class="btn-vk-outline text-decoration-none" style="font-size: 0.75rem;">Ver Expediente de Solicitud</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Reporte Central de Riesgos -->
-  <div class="col-lg-6">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="d-flex justify-content-between align-items-center border-bottom border-dark pb-2 mb-3">
-        <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Reporte Central de Riesgos (ASFI / Infocred)</span>
-        <span class="badge-vk badge-vk-neutral font-mono">{{ buro.nivel_riesgo }}</span>
-      </div>
-      <dl class="row mb-0 small">
-        <dt class="col-6 text-muted text-uppercase">Score Crediticio</dt>
-        <dd class="col-6 font-mono fw-bold">{{ buro.score }} puntos</dd>
-
-        <dt class="col-6 text-muted text-uppercase">Deuda Externa Total</dt>
-        <dd class="col-6 font-mono">Bs. {{ buro.deuda_vigente|floatformat:2 }}</dd>
-
-        <dt class="col-6 text-muted text-uppercase">Entidades Reportantes</dt>
-        <dd class="col-6 font-mono">{{ buro.entidades_deuda }}</dd>
-
-        <dt class="col-6 text-muted text-uppercase">Mora Activa en Sistema</dt>
-        <dd class="col-6 fw-bold {% if buro.tiene_mora %}text-danger{% else %}text-success{% endif %}">
-          {% if buro.tiene_mora %}SÍ — REGISTRA MORA{% else %}NO — AL DÍA{% endif %}
-        </dd>
-      </dl>
-      <div class="mt-3 pt-2 border-top border-dark small text-muted">
-        <strong>Observación del Buró:</strong> {{ buro.observaciones }}
-      </div>
-    </div>
-  </div>
+  <article>
+    <header><strong>Central de Riesgos</strong></header>
+    <p><strong>Score Crediticio:</strong> {{ buro.score }} puntos ({{ buro.nivel_riesgo }})</p>
+    <p><strong>Deuda Externa:</strong> Bs. {{ buro.deuda_vigente|floatformat:2 }} ({{ buro.entidades_deuda }} entidades)</p>
+    <p><strong>Mora Activa:</strong> {% if buro.tiene_mora %}Sí{% else %}No{% endif %}</p>
+    <p><small>{{ buro.observaciones }}</small></p>
+  </article>
 </div>
 {% endblock %}

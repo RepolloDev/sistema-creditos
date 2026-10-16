@@ -1,75 +1,49 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Cobro de Cuota en Ventanilla{% endblock %}
-{% block breadcrumb %}Pagos / Ventanilla de Caja{% endblock %}
+
 {% block page_title %}{{ titulo }}{% endblock %}
 
-{% block top_actions %}
-<a href="{% url 'pagos:listado' %}" class="btn-vk-outline text-decoration-none">Volver a Cobranzas</a>
+{% block actions %}
+<a href="{% url 'pagos:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
-{% block dashboard_content %}
-<!-- Buscador Rápido por C.I. -->
-<div class="bg-white border border-dark p-3 mb-4">
-  <form method="get" class="row g-2 align-items-end">
-    <div class="col-md-9">
-      <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Buscar Créditos Activos del Cliente (por C.I. o Apellido)</label>
-      <input type="text" name="q_ci" value="{{ q_ci }}" class="form-control form-control-sm border-dark rounded-0" placeholder="Ingrese C.I. o apellido para filtrar cuotas del cliente...">
-    </div>
-    <div class="col-md-3 d-flex gap-2">
-      <button type="submit" class="btn-vk-outline w-100">Buscar Cliente</button>
+{% block content %}
+<form method="get" role="search">
+  <input type="search" name="q_ci" value="{{ q_ci }}" placeholder="Buscar créditos activos por C.I. o apellido...">
+  <button type="submit" class="outline">Buscar Cliente</button>
+</form>
+
+{% if creditos_encontrados %}
+<article>
+  <header><strong>Créditos Encontrados</strong></header>
+  <div class="actions">
+    {% for cr in creditos_encontrados %}
+    <a href="{% url 'pagos:registrar' %}?credito_id={{ cr.pk }}" role="button" class="outline">
+      {{ cr.numero_credito }} — {{ cr.solicitud.cliente.apellidos }} (Saldo: Bs. {{ cr.saldo_capital|floatformat:2 }})
+    </a>
+    {% endfor %}
+  </div>
+</article>
+{% endif %}
+
+<article>
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <p><mark>{{ form.non_field_errors|striptags }}</mark></p>
+    {% endif %}
+
+    {% for field in form %}
+      <label>
+        {{ field.label }}
+        {{ field }}
+        {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
+      </label>
+    {% endfor %}
+
+    <div class="actions">
+      <a href="{% url 'pagos:listado' %}" role="button" class="outline">Cancelar</a>
+      <button type="submit">{{ boton_texto }}</button>
     </div>
   </form>
-
-  {% if creditos_encontrados %}
-  <div class="mt-3 pt-2 border-top border-dark">
-    <div class="small fw-bold text-uppercase mb-2" style="font-size: 0.7rem;">Seleccione un crédito encontrado para filtrar sus cuotas:</div>
-    <div class="d-flex flex-wrap gap-2">
-      {% for cr in creditos_encontrados %}
-      <a href="{% url 'pagos:registrar' %}?credito_id={{ cr.pk }}" class="btn-vk-primary text-decoration-none" style="font-size: 0.72rem;">
-        {{ cr.numero_credito }} — {{ cr.solicitud.cliente.apellidos }} (Saldo: Bs. {{ cr.saldo_capital|floatformat:2 }})
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-</div>
-
-<div class="row justify-content-center">
-  <div class="col-lg-7">
-    <div class="bg-white border border-dark p-4">
-      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.8rem; letter-spacing: 0.05em;">
-        Imputación de Pago en Caja (Prelación Normativa ASFI)
-      </h6>
-      <p class="small text-muted mb-4">
-        El cobro cancela el interés penal moratorio (si la cuota está vencida), el interés corriente y amortiza el capital del crédito, generando automáticamente el recibo oficial y el asiento en el Core Bancario.
-      </p>
-
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-        <div class="alert alert-danger rounded-0 border-dark small">
-          {{ form.non_field_errors }}
-        </div>
-        {% endif %}
-
-        {% for field in form %}
-        <div class="mb-3">
-          <label for="{{ field.id_for_label }}" class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.04em;">
-            {{ field.label }}
-          </label>
-          {{ field }}
-          {% if field.errors %}
-          <div class="text-danger small mt-1 fw-medium">{{ field.errors|striptags }}</div>
-          {% endif %}
-        </div>
-        {% endfor %}
-
-        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
-          <a href="{% url 'pagos:listado' %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
-          <button type="submit" class="btn-vk-primary">{{ boton_texto }}</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+</article>
 {% endblock %}

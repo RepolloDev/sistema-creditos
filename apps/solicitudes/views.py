@@ -1,20 +1,26 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Sum
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView
 
-from usuarios.models import Auditoria
+from usuarios.models import Auditoria, Usuario
+from usuarios.views import RolRequiredMixin
 from .forms import GarantiaForm, SolicitudCreditoForm
 from .models import Garantia, SolicitudCredito
 
 
-class SolicitudListView(LoginRequiredMixin, ListView):
+class SolicitudListView(RolRequiredMixin, ListView):
     """
     CU02: Bandeja general de solicitudes de financiamiento.
     """
 
+    roles_permitidos = [
+        Usuario.Rol.OFICIAL,
+        Usuario.Rol.ANALISTA,
+        Usuario.Rol.JEFE,
+        Usuario.Rol.GERENTE,
+    ]
     model = SolicitudCredito
     template_name = "solicitudes/solicitud_list.html"
     context_object_name = "solicitudes"
@@ -48,11 +54,12 @@ class SolicitudListView(LoginRequiredMixin, ListView):
         return context
 
 
-class SolicitudCreateView(LoginRequiredMixin, CreateView):
+class SolicitudCreateView(RolRequiredMixin, CreateView):
     """
-    CU02 / RF03: Radicar una nueva solicitud de crédito en estado REGISTRADA.
+    CU02 / RF03: Radicar una nueva solicitud de crédito en estado REGISTRADA (Actor: Oficial).
     """
 
+    roles_permitidos = [Usuario.Rol.OFICIAL]
     model = SolicitudCredito
     form_class = SolicitudCreditoForm
     template_name = "solicitudes/solicitud_form.html"
@@ -90,11 +97,17 @@ class SolicitudCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
-class SolicitudDetailView(LoginRequiredMixin, DetailView):
+class SolicitudDetailView(RolRequiredMixin, DetailView):
     """
     Expediente completo de la solicitud, garantías vinculadas y dictamen.
     """
 
+    roles_permitidos = [
+        Usuario.Rol.OFICIAL,
+        Usuario.Rol.ANALISTA,
+        Usuario.Rol.JEFE,
+        Usuario.Rol.GERENTE,
+    ]
     model = SolicitudCredito
     template_name = "solicitudes/solicitud_detail.html"
     context_object_name = "solicitud"
@@ -116,11 +129,12 @@ class SolicitudDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class GarantiaCreateView(LoginRequiredMixin, CreateView):
+class GarantiaCreateView(RolRequiredMixin, CreateView):
     """
-    CU06 / RF07 / RN13: Registrar garantía y asociarla a la solicitud.
+    CU06 / RF07 / RN13: Registrar garantía y asociarla a la solicitud (Actor: Oficial).
     """
 
+    roles_permitidos = [Usuario.Rol.OFICIAL]
     model = Garantia
     form_class = GarantiaForm
     template_name = "solicitudes/garantia_form.html"
@@ -155,13 +169,15 @@ class GarantiaCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy("solicitudes:detalle", kwargs={"pk": self.solicitud.pk})
 
 
-class SolicitudDeleteView(LoginRequiredMixin, DeleteView):
+class SolicitudDeleteView(RolRequiredMixin, DeleteView):
+    roles_permitidos = [Usuario.Rol.OFICIAL, Usuario.Rol.JEFE]
     model = SolicitudCredito
     template_name = "solicitudes/solicitud_confirm_delete.html"
     success_url = reverse_lazy("solicitudes:listado")
 
 
-class GarantiaDeleteView(LoginRequiredMixin, DeleteView):
+class GarantiaDeleteView(RolRequiredMixin, DeleteView):
+    roles_permitidos = [Usuario.Rol.OFICIAL]
     model = Garantia
 
     def get_success_url(self):

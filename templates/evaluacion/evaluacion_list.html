@@ -1,119 +1,83 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Evaluaciones Crediticias{% endblock %}
-{% block breadcrumb %}Evaluación / Dictámenes{% endblock %}
-{% block page_title %}Bandeja de Evaluación Crediticia{% endblock %}
 
-{% block top_actions %}
-<a href="{% url 'evaluacion:crear' %}" class="btn-vk-primary text-decoration-none">+ Nueva Evaluación</a>
+{% block page_title %}Evaluaciones Crediticias{% endblock %}
+
+{% block actions %}
+{% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
+<a href="{% url 'evaluacion:crear' %}" role="button">+ Nueva Evaluación</a>
+{% endif %}
 {% endblock %}
 
-{% block dashboard_content %}
-<!-- Solicitudes pendientes de evaluar -->
-{% if solicitudes_sin_evaluar %}
-<div class="bg-white border border-dark p-3 mb-4">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <span class="fw-bold text-uppercase text-warning" style="font-size: 0.75rem; letter-spacing: 0.05em;">
-      Solicitudes Pendientes de Dictamen Técnico ({{ solicitudes_sin_evaluar|length }})
-    </span>
-  </div>
-  <div class="d-flex flex-wrap gap-2">
+{% block content %}
+{% if solicitudes_sin_evaluar and request.user.rol in "ADMINISTRADOR,ANALISTA" or solicitudes_sin_evaluar and request.user.is_superuser %}
+<article>
+  <header><strong>Solicitudes Pendientes de Evaluación ({{ solicitudes_sin_evaluar|length }})</strong></header>
+  <div class="actions">
     {% for s in solicitudes_sin_evaluar %}
-    <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" class="btn-vk-outline text-decoration-none" style="font-size: 0.72rem;">
+    <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" role="button" class="outline">
       Evaluar #{{ s.id }} — {{ s.cliente.apellidos }} (Bs. {{ s.monto_solicitado|floatformat:0 }})
     </a>
     {% endfor %}
   </div>
-</div>
+</article>
 {% endif %}
 
-<!-- Filtros -->
-<div class="bg-white border border-dark p-3 mb-4">
-  <form method="get" class="row g-2 align-items-end">
-    <div class="col-md-4">
-      <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Buscar por Cliente o C.I.</label>
-      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm border-dark rounded-0" placeholder="C.I. o Apellidos...">
-    </div>
-    <div class="col-md-3">
-      <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Nivel de Riesgo</label>
-      <select name="riesgo" class="form-select form-select-sm border-dark rounded-0">
-        <option value="">— Todos —</option>
-        {% for val, label in niveles_riesgo %}
-        <option value="{{ val }}" {% if riesgo_filtro == val %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Resultado Técnico</label>
-      <select name="resultado" class="form-select form-select-sm border-dark rounded-0">
-        <option value="">— Todos —</option>
-        {% for val, label in resultados %}
-        <option value="{{ val }}" {% if resultado_filtro == val %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-2 d-flex gap-2">
-      <button type="submit" class="btn-vk-primary w-100">Filtrar</button>
-    </div>
-  </form>
-</div>
+<form method="get">
+  <div class="grid">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por C.I. o apellido...">
+    <select name="riesgo">
+      <option value="">Todos los riesgos</option>
+      {% for val, label in niveles_riesgo %}
+      <option value="{{ val }}" {% if riesgo_filtro == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="resultado">
+      <option value="">Todos los resultados</option>
+      {% for val, label in resultados %}
+      <option value="{{ val }}" {% if resultado_filtro == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filtrar</button>
+  </div>
+</form>
 
-<!-- Tabla de Evaluaciones -->
-<div class="bg-white border border-dark">
-  <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
-    <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Dictámenes Registrados</span>
-    <span class="font-mono small text-muted">Total: {{ evaluaciones|length }}</span>
-  </div>
-  <div class="table-responsive">
-    <table class="table table-vk mb-0">
-      <thead>
-        <tr>
-          <th># Eval</th>
-          <th>Solicitud / Cliente</th>
-          <th>Ingresos</th>
-          <th>Gastos</th>
-          <th>Capacidad Pago</th>
-          <th>Nivel Riesgo</th>
-          <th>Resultado</th>
-          <th>Fecha</th>
-          <th class="text-end">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ev in evaluaciones %}
-        <tr>
-          <td class="font-mono fw-bold">#{{ ev.id }}</td>
-          <td>
-            <div class="fw-medium">Sol. #{{ ev.solicitud.id }} — {{ ev.solicitud.cliente.apellidos }}, {{ ev.solicitud.cliente.nombres }}</div>
-            <div class="font-mono small text-muted">C.I. {{ ev.solicitud.cliente.ci }} | Solicitado: Bs. {{ ev.solicitud.monto_solicitado|floatformat:2 }}</div>
-          </td>
-          <td class="font-mono">Bs. {{ ev.ingresos|floatformat:2 }}</td>
-          <td class="font-mono">Bs. {{ ev.gastos|floatformat:2 }}</td>
-          <td class="font-mono fw-bold">Bs. {{ ev.capacidad_pago|floatformat:2 }}</td>
-          <td>
-            <span class="badge-vk {% if ev.nivel_riesgo == 'BAJO' %}badge-vk-success{% elif ev.nivel_riesgo == 'MEDIO' %}badge-vk-warning{% else %}badge-vk-danger{% endif %}">
-              {{ ev.get_nivel_riesgo_display }}
-            </span>
-          </td>
-          <td>
-            <span class="badge-vk {% if ev.resultado == 'FAVORABLE' %}badge-vk-success{% else %}badge-vk-danger{% endif %}">
-              {{ ev.get_resultado_display }}
-            </span>
-          </td>
-          <td class="font-mono small text-muted">{{ ev.fecha_evaluacion|date:"d/m/Y" }}</td>
-          <td class="text-end">
-            <div class="d-inline-flex gap-1">
-              <a href="{% url 'evaluacion:detalle' ev.pk %}" class="btn-vk-outline text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Dictamen</a>
-              <a href="{% url 'evaluacion:eliminar' ev.pk %}" class="btn-vk-danger text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Eliminar</a>
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="9" class="text-center text-muted py-4">No existen evaluaciones crediticias registradas.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Solicitud / Cliente</th>
+        <th>Ingresos</th>
+        <th>Gastos</th>
+        <th>Capacidad Pago</th>
+        <th>Riesgo</th>
+        <th>Resultado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ev in evaluaciones %}
+      <tr>
+        <td>#{{ ev.id }}</td>
+        <td>Sol. #{{ ev.solicitud.id }} — {{ ev.solicitud.cliente.apellidos }}, {{ ev.solicitud.cliente.nombres }} ({{ ev.solicitud.cliente.ci }})</td>
+        <td>Bs. {{ ev.ingresos|floatformat:2 }}</td>
+        <td>Bs. {{ ev.gastos|floatformat:2 }}</td>
+        <td>Bs. {{ ev.capacidad_pago|floatformat:2 }}</td>
+        <td>{{ ev.get_nivel_riesgo_display }}</td>
+        <td>{{ ev.get_resultado_display }}</td>
+        <td>
+          <div class="actions">
+            <a href="{% url 'evaluacion:detalle' ev.pk %}" role="button" class="outline">Ver</a>
+            {% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
+            <a href="{% url 'evaluacion:eliminar' ev.pk %}" role="button" class="outline danger">Eliminar</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8">Sin evaluaciones registradas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
 {% endblock %}

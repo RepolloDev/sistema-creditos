@@ -1,14 +1,9 @@
 from decimal import Decimal
 from django import forms
-from solicitudes.models import SolicitudCredito
 from .models import EvaluacionCredito
 
 
 class EvaluacionCreditoForm(forms.ModelForm):
-    """
-    Formulario para CU04 / CU05: Evaluación técnica de capacidad de pago y riesgo.
-    """
-
     class Meta:
         model = EvaluacionCredito
         fields = [
@@ -21,40 +16,10 @@ class EvaluacionCreditoForm(forms.ModelForm):
             "observaciones",
         ]
         widgets = {
-            "solicitud": forms.Select(attrs={"class": "form-select border-dark"}),
-            "ingresos": forms.NumberInput(
-                attrs={
-                    "class": "form-control border-dark font-mono",
-                    "step": "0.01",
-                    "min": "0.00",
-                    "id": "id_ingresos",
-                }
-            ),
-            "gastos": forms.NumberInput(
-                attrs={
-                    "class": "form-control border-dark font-mono",
-                    "step": "0.01",
-                    "min": "0.00",
-                    "id": "id_gastos",
-                }
-            ),
-            "capacidad_pago": forms.NumberInput(
-                attrs={
-                    "class": "form-control border-dark font-mono bg-light",
-                    "step": "0.01",
-                    "readonly": "readonly",
-                    "id": "id_capacidad_pago",
-                }
-            ),
-            "nivel_riesgo": forms.Select(attrs={"class": "form-select border-dark"}),
-            "resultado": forms.Select(attrs={"class": "form-select border-dark"}),
-            "observaciones": forms.Textarea(
-                attrs={
-                    "class": "form-control border-dark",
-                    "rows": 3,
-                    "placeholder": "Fundamento técnico de la recomendación emitida por el analista...",
-                }
-            ),
+            "ingresos": forms.NumberInput(attrs={"step": "0.01", "min": "0.00", "id": "id_ingresos"}),
+            "gastos": forms.NumberInput(attrs={"step": "0.01", "min": "0.00", "id": "id_gastos"}),
+            "capacidad_pago": forms.NumberInput(attrs={"step": "0.01", "readonly": True, "id": "id_capacidad_pago"}),
+            "observaciones": forms.Textarea(attrs={"rows": 2}),
         }
 
     def __init__(self, *args, **kwargs):

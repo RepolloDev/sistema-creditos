@@ -1,102 +1,66 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Cartera de Créditos{% endblock %}
-{% block breadcrumb %}Créditos / Cartera{% endblock %}
-{% block page_title %}Cartera de Operaciones Crediticias{% endblock %}
 
-{% block top_actions %}
-<div class="d-flex gap-2">
-  <a href="{% url 'creditos:reportes' %}" class="btn-vk-outline text-decoration-none">Reportes de Cartera</a>
-  <a href="{% url 'solicitudes:listado' %}" class="btn-vk-primary text-decoration-none">Ver Solicitudes</a>
-</div>
+{% block page_title %}Cartera de Créditos{% endblock %}
+
+{% block actions %}
+{% if request.user.rol in "ADMINISTRADOR,GERENTE,JEFE" or request.user.is_superuser %}
+<a href="{% url 'creditos:reportes' %}" role="button" class="outline">Reportes</a>
+{% endif %}
+{% if request.user.rol in "ADMINISTRADOR,OFICIAL,ANALISTA,JEFE,GERENTE" or request.user.is_superuser %}
+<a href="{% url 'solicitudes:listado' %}" role="button">Solicitudes</a>
+{% endif %}
 {% endblock %}
 
-{% block dashboard_content %}
-<!-- Filtros -->
-<div class="bg-white border border-dark p-3 mb-4">
-  <form method="get" class="row g-2 align-items-end">
-    <div class="col-md-5">
-      <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Buscar por C.I., Cliente o N° Contrato</label>
-      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm border-dark rounded-0" placeholder="Ej. VK-CTR-2026 o C.I...">
-    </div>
-    <div class="col-md-4">
-      <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Estado Operativo</label>
-      <select name="estado" class="form-select form-select-sm border-dark rounded-0">
-        <option value="">— Todos los estados —</option>
-        {% for val, label in estados %}
-        <option value="{{ val }}" {% if estado_filtro == val %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-3 d-flex gap-2">
-      <button type="submit" class="btn-vk-primary w-100">Filtrar</button>
-      {% if q or estado_filtro %}
-      <a href="{% url 'creditos:listado' %}" class="btn-vk-outline text-decoration-none text-center">Limpiar</a>
-      {% endif %}
-    </div>
-  </form>
-</div>
+{% block content %}
+<form method="get">
+  <div class="grid">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por C.I., cliente o contrato...">
+    <select name="estado">
+      <option value="">Todos los estados</option>
+      {% for val, label in estados %}
+      <option value="{{ val }}" {% if estado_filtro == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filtrar</button>
+  </div>
+</form>
 
-<!-- Tabla de Cartera -->
-<div class="bg-white border border-dark">
-  <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
-    <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Créditos Aprobados y Vigentes</span>
-    <span class="font-mono small text-muted">Total: {{ creditos|length }}</span>
-  </div>
-  <div class="table-responsive">
-    <table class="table table-vk mb-0">
-      <thead>
-        <tr>
-          <th># Créd.</th>
-          <th>Cliente / C.I.</th>
-          <th>Contrato</th>
-          <th>Monto Aprobado</th>
-          <th>Tasa / Plazo</th>
-          <th>Saldo Pendiente</th>
-          <th>Estado</th>
-          <th class="text-end">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for cr in creditos %}
-        <tr>
-          <td class="font-mono fw-bold">#{{ cr.id }}</td>
-          <td>
-            <div class="fw-medium">{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }}</div>
-            <div class="font-mono small text-muted">{{ cr.solicitud.cliente.ci }}</div>
-          </td>
-          <td class="font-mono small">
-            {% if cr.contrato %}
-              {{ cr.contrato.numero_contrato }}
-              <span class="badge-vk {% if cr.contrato.estado == 'FIRMADO' %}badge-vk-success{% else %}badge-vk-warning{% endif %} ms-1">
-                {{ cr.contrato.get_estado_display }}
-              </span>
-            {% else %}
-              —
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Cliente (C.I.)</th>
+        <th>Contrato</th>
+        <th>Monto Aprobado</th>
+        <th>Saldo Pendiente</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cr in creditos %}
+      <tr>
+        <td>#{{ cr.id }}</td>
+        <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} ({{ cr.solicitud.cliente.ci }})</td>
+        <td>{% if cr.contrato %}{{ cr.contrato.numero_contrato }} ({{ cr.contrato.get_estado_display }}){% else %}—{% endif %}</td>
+        <td>Bs. {{ cr.monto_aprobado|floatformat:2 }}</td>
+        <td>Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
+        <td>{{ cr.get_estado_display }}</td>
+        <td>
+          <div class="actions">
+            <a href="{% url 'creditos:detalle' cr.pk %}" role="button" class="outline">Ver</a>
+            <a href="{% url 'creditos:cronograma' cr.pk %}" role="button" class="outline">Cronograma</a>
+            {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
+            <a href="{% url 'creditos:eliminar' cr.pk %}" role="button" class="outline danger">Eliminar</a>
             {% endif %}
-          </td>
-          <td class="font-mono fw-bold">Bs. {{ cr.monto_aprobado|floatformat:2 }}</td>
-          <td class="font-mono small">{{ cr.tasa_interes }}% / {{ cr.plazo_meses }}m</td>
-          <td class="font-mono fw-bold {% if cr.estado == 'EN_MORA' %}text-danger{% endif %}">Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
-          <td>
-            <span class="badge-vk {% if cr.estado == 'VIGENTE' or cr.estado == 'CANCELADO' %}badge-vk-success{% elif cr.estado == 'EN_MORA' %}badge-vk-danger{% else %}badge-vk-warning{% endif %}">
-              {{ cr.get_estado_display }}
-            </span>
-          </td>
-          <td class="text-end">
-            <div class="d-inline-flex gap-1">
-              <a href="{% url 'creditos:detalle' cr.pk %}" class="btn-vk-outline text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Detalle</a>
-              <a href="{% url 'creditos:cronograma' cr.pk %}" class="btn-vk-outline text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Cronograma</a>
-              <a href="{% url 'creditos:eliminar' cr.pk %}" class="btn-vk-danger text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Eliminar</a>
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="8" class="text-center text-muted py-4">No existen operaciones crediticias registradas.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">Sin créditos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
 {% endblock %}

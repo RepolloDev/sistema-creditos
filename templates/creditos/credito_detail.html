@@ -1,215 +1,90 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Crédito #{{ credito.id }}{% endblock %}
-{% block breadcrumb %}Créditos / Operación #{{ credito.id }}{% endblock %}
-{% block page_title %}Operación Crediticia #{{ credito.id }}{% endblock %}
 
-{% block top_actions %}
-<div class="d-flex gap-2">
-  <a href="{% url 'creditos:cronograma' credito.pk %}" class="btn-vk-outline text-decoration-none">Ver Cronograma Completo</a>
-  {% if credito.estado == 'VIGENTE' or credito.estado == 'EN_MORA' %}
-  <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}" class="btn-vk-primary text-decoration-none">Cobrar Cuota</a>
+{% block page_title %}Crédito #{{ credito.id }} ({{ credito.numero_credito }}){% endblock %}
+
+{% block actions %}
+<a href="{% url 'creditos:cronograma' credito.pk %}" role="button" class="outline">Cronograma</a>
+{% if credito.estado == 'VIGENTE' or credito.estado == 'EN_MORA' %}
+  {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
+  <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}" role="button">Cobrar Cuota</a>
   {% endif %}
-  <a href="{% url 'creditos:eliminar' credito.pk %}" class="btn-vk-danger text-decoration-none">Eliminar</a>
-  <a href="{% url 'creditos:listado' %}" class="btn-vk-outline text-decoration-none">Volver</a>
-</div>
+{% endif %}
+{% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
+<a href="{% url 'creditos:eliminar' credito.pk %}" role="button" class="outline danger">Eliminar</a>
+{% endif %}
+<a href="{% url 'creditos:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
-{% block dashboard_content %}
-<!-- Tarjetas Resumen -->
-<div class="row g-3 mb-4">
-  <div class="col-md-3">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem;">Monto Aprobado</div>
-      <div class="fs-4 fw-bold font-mono mt-1">Bs. {{ credito.monto_aprobado|floatformat:2 }}</div>
-      <div class="small text-muted mt-1">Tasa: {{ credito.tasa_interes }}% Anual | {{ credito.plazo_meses }} meses</div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem;">Saldo Capital Pendiente</div>
-      <div class="fs-4 fw-bold font-mono mt-1 {% if credito.estado == 'EN_MORA' %}text-danger{% endif %}">Bs. {{ credito.saldo_capital|floatformat:2 }}</div>
-      <div class="small text-muted mt-1">{{ cuotas_pagadas }} de {{ total_cuotas }} cuotas pagadas</div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem;">Estado del Crédito</div>
-      <div class="mt-2">
-        <span class="badge-vk {% if credito.estado == 'VIGENTE' or credito.estado == 'CANCELADO' %}badge-vk-success{% elif credito.estado == 'EN_MORA' %}badge-vk-danger{% else %}badge-vk-warning{% endif %}">
-          {{ credito.get_estado_display }}
-        </span>
-      </div>
-      <div class="small text-muted mt-2 font-mono">
-        Desembolso: {% if credito.fecha_desembolso %}{{ credito.fecha_desembolso|date:"d/m/Y" }}{% else %}Pendiente{% endif %}
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="bg-white border border-dark p-3 h-100">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem;">Contrato Legal</div>
-      {% if contrato %}
-      <div class="font-mono fw-bold mt-1">{{ contrato.numero_contrato }}</div>
-      <div class="mt-1">
-        <span class="badge-vk {% if contrato.estado == 'FIRMADO' %}badge-vk-success{% else %}badge-vk-warning{% endif %}">
-          {{ contrato.get_estado_display }}
-        </span>
-      </div>
-      {% else %}
-      <div class="text-muted small mt-2">Sin contrato</div>
-      {% endif %}
-    </div>
-  </div>
-</div>
+{% block content %}
+<div class="grid">
+  <article>
+    <header><strong>Datos del Crédito</strong></header>
+    <p><strong>Cliente:</strong> <a href="{% url 'clientes:detalle' credito.solicitud.cliente.pk %}">{{ credito.solicitud.cliente.nombres }} {{ credito.solicitud.cliente.apellidos }}</a> ({{ credito.solicitud.cliente.ci }})</p>
+    <p><strong>Monto Aprobado:</strong> Bs. {{ credito.monto_aprobado|floatformat:2 }} ({{ credito.tasa_interes }}% anual, {{ credito.plazo_meses }} meses)</p>
+    <p><strong>Saldo Capital:</strong> Bs. {{ credito.saldo_capital|floatformat:2 }} ({{ cuotas_pagadas }}/{{ total_cuotas }} cuotas pagadas)</p>
+    <p><strong>Estado:</strong> {{ credito.get_estado_display }}</p>
+    <p><strong>Contrato:</strong> {% if contrato %}{{ contrato.numero_contrato }} ({{ contrato.get_estado_display }}){% else %}—{% endif %}</p>
+  </article>
 
-<div class="row g-4">
-  <!-- Columna Izquierda: Formalización, Desembolso y Datos del Titular -->
-  <div class="col-lg-5">
-    <!-- Panel de Firma de Contrato y Desembolso -->
-    {% if credito.estado == 'APROBADO' %}
-    <div class="bg-white border border-dark p-3 mb-4">
-      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.78rem; letter-spacing: 0.05em;">
-        Formalización y Desembolso en Core Bancario
-      </h6>
-
+  {% if credito.estado == 'APROBADO' %}
+    {% if request.user.rol in "ADMINISTRADOR,OFICIAL,JEFE" or request.user.is_superuser %}
+    <article>
+      <header><strong>Formalización y Desembolso</strong></header>
       {% if contrato and contrato.estado == 'GENERADO' %}
-      <div class="p-3 bg-light border border-dark mb-3">
-        <div class="fw-bold small mb-1">Paso 1: Firma de Contrato Legal ({{ contrato.numero_contrato }})</div>
-        <p class="small text-muted mb-2">El contrato ha sido emitido. Registre la firma del cliente antes de autorizar el desembolso de fondos.</p>
-        <form method="post" action="{% url 'creditos:firmar_contrato' credito.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="btn-vk-primary w-100">Registrar Firma del Contrato</button>
-        </form>
-      </div>
+      <form method="post" action="{% url 'creditos:firmar_contrato' credito.pk %}">
+        {% csrf_token %}
+        <button type="submit">1. Registrar Firma del Contrato ({{ contrato.numero_contrato }})</button>
+      </form>
+      <hr>
       {% endif %}
-
-      <div class="p-3 {% if contrato and contrato.estado == 'FIRMADO' %}bg-light{% endif %} border border-dark">
-        <div class="fw-bold small mb-2">Paso 2: Ejecutar Desembolso en Core Bancario</div>
-        <form method="post" action="{% url 'creditos:desembolsar' credito.pk %}">
-          {% csrf_token %}
-          <div class="mb-2">
-            <label class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.68rem;">Cuenta Bancaria Destino (Volkskas)</label>
-            <input type="text" name="cuenta_destino" value="VK-CTA-{{ credito.solicitud.cliente.ci }}" class="form-control form-control-sm border-dark rounded-0 font-mono">
-          </div>
-          <button type="submit" class="btn-vk-primary w-100" {% if not contrato or contrato.estado != 'FIRMADO' %}disabled{% endif %}>
-            Ejecutar Desembolso (Bs. {{ credito.monto_aprobado|floatformat:2 }})
-          </button>
-          {% if not contrato or contrato.estado != 'FIRMADO' %}
-          <div class="small text-danger mt-1">Requiere firma previa del contrato.</div>
-          {% endif %}
-        </form>
-      </div>
-    </div>
+      <form method="post" action="{% url 'creditos:desembolsar' credito.pk %}">
+        {% csrf_token %}
+        <label>
+          Cuenta Destino
+          <input type="text" name="cuenta_destino" value="VK-CTA-{{ credito.solicitud.cliente.ci }}">
+        </label>
+        <button type="submit" {% if not contrato or contrato.estado != 'FIRMADO' %}disabled{% endif %}>
+          2. Ejecutar Desembolso (Bs. {{ credito.monto_aprobado|floatformat:2 }})
+        </button>
+      </form>
+    </article>
     {% endif %}
-
-    <!-- Ficha del Titular -->
-    <div class="bg-white border border-dark p-3 mb-4">
-      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-3" style="font-size: 0.78rem; letter-spacing: 0.05em;">
-        Datos del Titular y Solicitud Origen
-      </h6>
-      <dl class="row mb-0 small">
-        <dt class="col-5 text-muted text-uppercase">Titular</dt>
-        <dd class="col-7 fw-bold">
-          <a href="{% url 'clientes:detalle' credito.solicitud.cliente.pk %}" class="text-dark">
-            {{ credito.solicitud.cliente.nombres }} {{ credito.solicitud.cliente.apellidos }}
-          </a>
-        </dd>
-
-        <dt class="col-5 text-muted text-uppercase">Cédula (C.I.)</dt>
-        <dd class="col-7 font-mono">{{ credito.solicitud.cliente.ci }}</dd>
-
-        <dt class="col-5 text-muted text-uppercase">Solicitud Origen</dt>
-        <dd class="col-7 font-mono">
-          <a href="{% url 'solicitudes:detalle' credito.solicitud.pk %}" class="text-dark">#{{ credito.solicitud.id }}</a>
-        </dd>
-
-        <dt class="col-5 text-muted text-uppercase">Destino</dt>
-        <dd class="col-7">{{ credito.solicitud.destino }}</dd>
-      </dl>
-    </div>
-
-    <!-- Asientos Contables Core Bancario -->
-    <div class="bg-white border border-dark">
-      <div class="p-3 border-bottom border-dark bg-light">
-        <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Transacciones en Core Bancario</span>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-vk mb-0">
-          <thead>
-            <tr>
-              <th>Referencia</th>
-              <th>Cuenta Destino</th>
-              <th>Monto</th>
-              <th>Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for tx in transacciones_core %}
-            <tr>
-              <td class="font-mono fw-bold small">{{ tx.referencia_transaccion }}</td>
-              <td class="font-mono small">{{ tx.cuenta_destino }}</td>
-              <td class="font-mono">Bs. {{ tx.monto|floatformat:2 }}</td>
-              <td class="font-mono small text-muted">{{ tx.fecha_procesamiento|date:"d/m/Y H:i" }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="4" class="text-center text-muted py-3 small">Sin asientos contables registrados.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Columna Derecha: Resumen del Plan de Pagos -->
-  <div class="col-lg-7">
-    <div class="bg-white border border-dark">
-      <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
-        <div>
-          <span class="fw-bold text-uppercase d-block" style="font-size: 0.78rem; letter-spacing: 0.05em;">Plan de Pagos (Sistema Francés)</span>
-          <span class="small text-muted">Pendientes: {{ cuotas_pendientes }} | Vencidas: <strong class="{% if cuotas_vencidas > 0 %}text-danger{% endif %}">{{ cuotas_vencidas }}</strong></span>
-        </div>
-        <a href="{% url 'creditos:cronograma' credito.pk %}" class="btn-vk-outline text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.72rem;">Vista Imprimible</a>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-vk mb-0">
-          <thead>
-            <tr>
-              <th>N°</th>
-              <th>Vencimiento</th>
-              <th>Capital</th>
-              <th>Interés</th>
-              <th>Cuota Total</th>
-              <th>Estado</th>
-              <th class="text-end">Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for c in cuotas %}
-            <tr>
-              <td class="font-mono fw-bold">#{{ c.numero_cuota }}</td>
-              <td class="font-mono small">{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
-              <td class="font-mono">Bs. {{ c.capital|floatformat:2 }}</td>
-              <td class="font-mono">Bs. {{ c.interes|floatformat:2 }}</td>
-              <td class="font-mono fw-bold">Bs. {{ c.monto_cuota|floatformat:2 }}</td>
-              <td>
-                <span class="badge-vk {% if c.estado == 'PAGADA' %}badge-vk-success{% elif c.estado == 'VENCIDA' %}badge-vk-danger{% else %}badge-vk-neutral{% endif %}">
-                  {{ c.get_estado_display }}
-                </span>
-              </td>
-              <td class="text-end">
-                {% if c.estado != 'PAGADA' and credito.estado != 'APROBADO' %}
-                <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}" class="btn-vk-primary text-decoration-none" style="padding: 0.15rem 0.45rem; font-size: 0.68rem;">Pagar</a>
-                {% else %}
-                <span class="text-muted small">—</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+  {% endif %}
 </div>
+
+<article>
+  <header><strong>Plan de Pagos</strong></header>
+  <table>
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Vencimiento</th>
+        <th>Capital</th>
+        <th>Interés</th>
+        <th>Total Cuota</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cuotas %}
+      <tr>
+        <td>#{{ c.numero_cuota }}</td>
+        <td>{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
+        <td>Bs. {{ c.capital|floatformat:2 }}</td>
+        <td>Bs. {{ c.interes|floatformat:2 }}</td>
+        <td>Bs. {{ c.monto_cuota|floatformat:2 }}</td>
+        <td>{{ c.get_estado_display }}</td>
+        <td>
+          {% if c.estado != 'PAGADA' and credito.estado != 'APROBADO' %}
+            {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
+            <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}" role="button" class="outline">Pagar</a>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
 {% endblock %}

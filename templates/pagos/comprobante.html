@@ -1,90 +1,48 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Comprobante {{ pago.numero_recibo }}{% endblock %}
-{% block breadcrumb %}Pagos / Comprobante {{ pago.numero_recibo }}{% endblock %}
-{% block page_title %}Comprobante Oficial de Pago — {{ pago.numero_recibo }}{% endblock %}
 
-{% block top_actions %}
-<div class="d-flex gap-2">
-  <button type="button" onclick="window.print()" class="btn-vk-primary">Imprimir Recibo</button>
-  <a href="{% url 'creditos:detalle' credito.pk %}" class="btn-vk-outline text-decoration-none">Ir al Crédito #{{ credito.id }}</a>
-  <a href="{% url 'pagos:listado' %}" class="btn-vk-outline text-decoration-none">Volver a Caja</a>
-</div>
+{% block page_title %}Comprobante {{ pago.numero_recibo }}{% endblock %}
+
+{% block actions %}
+<button type="button" onclick="window.print()" class="outline">Imprimir</button>
+<a href="{% url 'creditos:detalle' credito.pk %}" role="button" class="outline">Ir al Crédito</a>
+<a href="{% url 'pagos:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
-{% block dashboard_content %}
-<div class="row justify-content-center">
-  <div class="col-lg-8">
-    <div class="bg-white border border-dark p-4">
-      <!-- Encabezado Institucional del Recibo -->
-      <div class="d-flex justify-content-between align-items-start border-bottom border-dark pb-3 mb-4">
-        <div>
-          <div class="fw-bold text-uppercase" style="font-size: 1rem; letter-spacing: 0.08em;">BANCO VOLKSKAS S.A.</div>
-          <div class="small text-muted">Comprobante Oficial de Amortización de Crédito</div>
-        </div>
-        <div class="text-end font-mono">
-          <div class="fw-bold fs-5">{{ pago.numero_recibo }}</div>
-          <div class="small text-muted">Fecha: {{ pago.fecha_pago|date:"d/m/Y" }}</div>
-        </div>
-      </div>
+{% block content %}
+<article>
+  <header>
+    <strong>BANCO VOLKSKAS — Recibo {{ pago.numero_recibo }}</strong>
+  </header>
 
-      <!-- Datos del Cliente y Operación -->
-      <div class="row g-3 mb-4 small">
-        <div class="col-md-6">
-          <div class="p-3 bg-light border border-dark h-100">
-            <div class="fw-bold text-uppercase mb-2" style="font-size: 0.7rem;">Datos del Titular</div>
-            <div><strong>Cliente:</strong> {{ cliente.nombres }} {{ cliente.apellidos }}</div>
-            <div><strong>Cédula (C.I.):</strong> <span class="font-mono">{{ cliente.ci }}</span></div>
-            <div><strong>Teléfono:</strong> <span class="font-mono">{{ cliente.telefono }}</span></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="p-3 bg-light border border-dark h-100">
-            <div class="fw-bold text-uppercase mb-2" style="font-size: 0.7rem;">Operación Crediticia</div>
-            <div><strong>Crédito N°:</strong> <span class="font-mono">#{{ credito.id }}</span></div>
-            <div><strong>Cuota Cancelada:</strong> <span class="font-mono">#{{ cuota.numero_cuota }} de {{ credito.plazo_meses }}</span></div>
-            <div><strong>Canal de Pago:</strong> {{ pago.get_forma_pago_display }}</div>
-          </div>
-        </div>
-      </div>
+  <p><strong>Cliente:</strong> {{ cliente.nombres }} {{ cliente.apellidos }} ({{ cliente.ci }})</p>
+  <p><strong>Crédito:</strong> #{{ credito.id }} — Cuota #{{ cuota.numero_cuota }} de {{ credito.plazo_meses }}</p>
+  <p><strong>Forma de Pago:</strong> {{ pago.get_forma_pago_display }}</p>
 
-      <!-- Desglose Financiero -->
-      <table class="table table-vk mb-4">
-        <thead>
-          <tr>
-            <th>Concepto de Imputación</th>
-            <th class="text-end">Importe (Bs.)</th>
-          </tr>
-        </thead>
-        <tbody class="font-mono">
-          <tr>
-            <td>Amortización a Capital (Cuota #{{ cuota.numero_cuota }})</td>
-            <td class="text-end">Bs. {{ cuota.capital|floatformat:2 }}</td>
-          </tr>
-          <tr>
-            <td>Interés Corriente del Periodo</td>
-            <td class="text-end">Bs. {{ cuota.interes|floatformat:2 }}</td>
-          </tr>
-          {% if pago.monto > cuota.monto_cuota %}
-          <tr>
-            <td>Recargo / Interés Penal Moratorio</td>
-            <td class="text-end">Bs. {{ pago.monto|add:0|floatformat:2 }} (Incluye mora)</td>
-          </tr>
-          {% endif %}
-        </tbody>
-        <tfoot class="border-top border-dark bg-light fw-bold font-mono">
-          <tr>
-            <td class="text-uppercase">Total Pagado en Caja</td>
-            <td class="text-end fs-6">Bs. {{ pago.monto|floatformat:2 }}</td>
-          </tr>
-        </tfoot>
-      </table>
+  <table>
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th>Importe</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Capital (Cuota #{{ cuota.numero_cuota }})</td>
+        <td>Bs. {{ cuota.capital|floatformat:2 }}</td>
+      </tr>
+      <tr>
+        <td>Interés Corriente</td>
+        <td>Bs. {{ cuota.interes|floatformat:2 }}</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Total Pagado</th>
+        <th>Bs. {{ pago.monto|floatformat:2 }}</th>
+      </tr>
+    </tfoot>
+  </table>
 
-      <!-- Estado Posterior del Crédito -->
-      <div class="d-flex justify-content-between align-items-center pt-3 border-top border-dark small font-mono">
-        <span><strong>Saldo Capital Restante del Crédito:</strong> Bs. {{ credito.saldo_capital|floatformat:2 }}</span>
-        <span><strong>Estado Actual del Crédito:</strong> {{ credito.get_estado_display }}</span>
-      </div>
-    </div>
-  </div>
-</div>
+  <small>Saldo Capital Restante: Bs. {{ credito.saldo_capital|floatformat:2 }} | Estado: {{ credito.get_estado_display }}</small>
+</article>
 {% endblock %}

@@ -1,6 +1,5 @@
 from decimal import Decimal
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect
@@ -9,7 +8,8 @@ from django.views.generic import DeleteView, DetailView, FormView, ListView, Tem
 
 from integraciones.models import TransaccionCoreBancario
 from solicitudes.models import SolicitudCredito
-from usuarios.models import Auditoria
+from usuarios.models import Usuario
+from usuarios.views import RolRequiredMixin
 from .forms import AprobacionCreditoForm, RechazoCreditoForm
 from .models import Credito
 from .services import (
@@ -21,11 +21,18 @@ from .services import (
 )
 
 
-class CreditoListView(LoginRequiredMixin, ListView):
+class CreditoListView(RolRequiredMixin, ListView):
     """
     Lista general de créditos en cartera con filtros por estado y buscador.
     """
 
+    roles_permitidos = [
+        Usuario.Rol.OFICIAL,
+        Usuario.Rol.ANALISTA,
+        Usuario.Rol.JEFE,
+        Usuario.Rol.CAJERO,
+        Usuario.Rol.GERENTE,
+    ]
     model = Credito
     template_name = "creditos/credito_list.html"
     context_object_name = "creditos"
@@ -56,11 +63,18 @@ class CreditoListView(LoginRequiredMixin, ListView):
         return context
 
 
-class CreditoDetailView(LoginRequiredMixin, DetailView):
+class CreditoDetailView(RolRequiredMixin, DetailView):
     """
     Detalle del crédito, contrato, resumen de cuotas y estado de desembolso.
     """
 
+    roles_permitidos = [
+        Usuario.Rol.OFICIAL,
+        Usuario.Rol.ANALISTA,
+        Usuario.Rol.JEFE,
+        Usuario.Rol.CAJERO,
+        Usuario.Rol.GERENTE,
+    ]
     model = Credito
     template_name = "creditos/credito_detail.html"
     context_object_name = "credito"
@@ -85,11 +99,12 @@ class CreditoDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class AprobarCreditoView(LoginRequiredMixin, FormView):
+class AprobarCreditoView(RolRequiredMixin, FormView):
     """
     CU07 / RF08: Aprobación formal por Jefe de Créditos.
     """
 
+    roles_permitidos = [Usuario.Rol.JEFE]
     form_class = AprobacionCreditoForm
     template_name = "creditos/credito_aprobar.html"
 
@@ -132,11 +147,12 @@ class AprobarCreditoView(LoginRequiredMixin, FormView):
             return self.form_invalid(form)
 
 
-class RechazarCreditoView(LoginRequiredMixin, FormView):
+class RechazarCreditoView(RolRequiredMixin, FormView):
     """
-    CU08 / RF09 / RN11: Rechazo justificado de solicitud de crédito.
+    CU08 / RF09 / RN11: Rechazo justificado de solicitud de crédito (Actor: Jefe de Créditos).
     """
 
+    roles_permitidos = [Usuario.Rol.JEFE]
     form_class = RechazoCreditoForm
     template_name = "creditos/credito_rechazar.html"
 
@@ -169,11 +185,18 @@ class RechazarCreditoView(LoginRequiredMixin, FormView):
             return self.form_invalid(form)
 
 
-class CronogramaView(LoginRequiredMixin, DetailView):
+class CronogramaView(RolRequiredMixin, DetailView):
     """
     CU10 / RF11: Tabla completa de amortización fija bajo el Sistema Francés.
     """
 
+    roles_permitidos = [
+        Usuario.Rol.OFICIAL,
+        Usuario.Rol.ANALISTA,
+        Usuario.Rol.JEFE,
+        Usuario.Rol.CAJERO,
+        Usuario.Rol.GERENTE,
+    ]
     model = Credito
     template_name = "creditos/cronograma.html"
     context_object_name = "credito"
@@ -197,10 +220,12 @@ class CronogramaView(LoginRequiredMixin, DetailView):
         return context
 
 
-class FirmarContratoView(LoginRequiredMixin, View):
+class FirmarContratoView(RolRequiredMixin, View):
     """
-    CU09 / RN05: Suscripción y firma del contrato previa al desembolso.
+    CU09 / RN05: Suscripción y firma del contrato previa al desembolso (Actor: Oficial / Jefe).
     """
+
+    roles_permitidos = [Usuario.Rol.OFICIAL, Usuario.Rol.JEFE]
 
     def post(self, request, pk):
         credito = get_object_or_404(Credito, pk=pk)
@@ -212,10 +237,12 @@ class FirmarContratoView(LoginRequiredMixin, View):
         return redirect("creditos:detalle", pk=credito.pk)
 
 
-class DesembolsarCreditoView(LoginRequiredMixin, View):
+class DesembolsarCreditoView(RolRequiredMixin, View):
     """
-    CU11 / RF12: Ejecución y confirmación de desembolso con el Core Bancario.
+    CU11 / RF12: Ejecución y confirmación de desembolso con el Core Bancario (Actor: Oficial / Jefe).
     """
+
+    roles_permitidos = [Usuario.Rol.OFICIAL, Usuario.Rol.JEFE]
 
     def post(self, request, pk):
         credito = get_object_or_404(Credito, pk=pk)
@@ -238,11 +265,12 @@ class DesembolsarCreditoView(LoginRequiredMixin, View):
         return redirect("creditos:detalle", pk=pk)
 
 
-class ReportesView(LoginRequiredMixin, TemplateView):
+class ReportesView(RolRequiredMixin, TemplateView):
     """
-    CU14 / RF15: Dashboard gerencial de reportes de cartera, recaudación y mora.
+    CU14 / RF15: Dashboard gerencial de reportes de cartera, recaudación y mora (Actor: Gerente / Jefe).
     """
 
+    roles_permitidos = [Usuario.Rol.GERENTE, Usuario.Rol.JEFE]
     template_name = "creditos/reportes.html"
 
     def get_context_data(self, **kwargs):
@@ -257,7 +285,8 @@ class ReportesView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class CreditoDeleteView(LoginRequiredMixin, DeleteView):
+class CreditoDeleteView(RolRequiredMixin, DeleteView):
+    roles_permitidos = [Usuario.Rol.JEFE]
     model = Credito
     template_name = "creditos/credito_confirm_delete.html"
     success_url = reverse_lazy("creditos:listado")

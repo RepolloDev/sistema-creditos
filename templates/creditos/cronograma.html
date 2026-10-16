@@ -1,70 +1,54 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Cronograma de Pagos - Crédito #{{ credito.id }}{% endblock %}
-{% block breadcrumb %}Créditos / #{{ credito.id }} / Cronograma{% endblock %}
-{% block page_title %}Cronograma de Amortización — Crédito #{{ credito.id }}{% endblock %}
 
-{% block top_actions %}
-<div class="d-flex gap-2">
-  <button type="button" onclick="window.print()" class="btn-vk-primary">Imprimir Plan de Pagos</button>
-  <a href="{% url 'creditos:detalle' credito.pk %}" class="btn-vk-outline text-decoration-none">Volver al Crédito</a>
-</div>
+{% block page_title %}Cronograma — Crédito #{{ credito.id }}{% endblock %}
+
+{% block actions %}
+<button type="button" onclick="window.print()" class="outline">Imprimir</button>
+<a href="{% url 'creditos:detalle' credito.pk %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
-{% block dashboard_content %}
-<div class="bg-white border border-dark p-4 mb-4">
-  <div class="row border-bottom border-dark pb-3 mb-3 align-items-center">
-    <div class="col-md-8">
-      <div class="fw-bold text-uppercase" style="font-size: 0.9rem; letter-spacing: 0.06em;">BANCO VOLKSKAS S.A. — TABLA DE AMORTIZACIÓN (SISTEMA FRANCÉS)</div>
-      <div class="small text-muted font-mono">
-        Contrato: {% if credito.contrato %}{{ credito.contrato.numero_contrato }}{% else %}S/N{% endif %} | Titular: {{ credito.solicitud.cliente.nombres }} {{ credito.solicitud.cliente.apellidos }} (C.I. {{ credito.solicitud.cliente.ci }})
-      </div>
-    </div>
-    <div class="col-md-4 text-md-end font-mono small">
-      <div><strong>Capital:</strong> Bs. {{ credito.monto_aprobado|floatformat:2 }}</div>
-      <div><strong>Tasa Anual:</strong> {{ credito.tasa_interes }}% | <strong>Plazo:</strong> {{ credito.plazo_meses }} meses</div>
-    </div>
-  </div>
+{% block content %}
+<article>
+  <header>
+    <strong>Cliente:</strong> {{ credito.solicitud.cliente.nombres }} {{ credito.solicitud.cliente.apellidos }} ({{ credito.solicitud.cliente.ci }}) |
+    <strong>Capital:</strong> Bs. {{ credito.monto_aprobado|floatformat:2 }} |
+    <strong>Tasa:</strong> {{ credito.tasa_interes }}% ({{ credito.plazo_meses }} meses)
+  </header>
 
-  <div class="table-responsive">
-    <table class="table table-vk mb-0">
-      <thead>
-        <tr>
-          <th>N° Cuota</th>
-          <th>Fecha Vencimiento</th>
-          <th class="text-end">Amortización Capital</th>
-          <th class="text-end">Interés Corriente</th>
-          <th class="text-end">Cuota Fija Total</th>
-          <th class="text-end">Saldo Restante</th>
-          <th class="text-center">Estado Actual</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in cuotas %}
-        <tr>
-          <td class="font-mono fw-bold">#{{ c.numero_cuota }}</td>
-          <td class="font-mono">{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
-          <td class="font-mono text-end">Bs. {{ c.capital|floatformat:2 }}</td>
-          <td class="font-mono text-end">Bs. {{ c.interes|floatformat:2 }}</td>
-          <td class="font-mono text-end fw-bold">Bs. {{ c.monto_cuota|floatformat:2 }}</td>
-          <td class="font-mono text-end">Bs. {{ c.saldo_cuota|floatformat:2 }}</td>
-          <td class="text-center">
-            <span class="badge-vk {% if c.estado == 'PAGADA' %}badge-vk-success{% elif c.estado == 'VENCIDA' %}badge-vk-danger{% else %}badge-vk-neutral{% endif %}">
-              {{ c.get_estado_display }}
-            </span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot class="border-top border-dark bg-light fw-bold font-mono">
-        <tr>
-          <td colspan="2" class="text-uppercase">Totales del Plan de Pagos</td>
-          <td class="text-end">Bs. {{ totales.total_capital|floatformat:2 }}</td>
-          <td class="text-end">Bs. {{ totales.total_interes|floatformat:2 }}</td>
-          <td class="text-end">Bs. {{ totales.total_cuotas|floatformat:2 }}</td>
-          <td colspan="2"></td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-</div>
+  <table>
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Vencimiento</th>
+        <th>Capital</th>
+        <th>Interés</th>
+        <th>Cuota Total</th>
+        <th>Saldo</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cuotas %}
+      <tr>
+        <td>#{{ c.numero_cuota }}</td>
+        <td>{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
+        <td>Bs. {{ c.capital|floatformat:2 }}</td>
+        <td>Bs. {{ c.interes|floatformat:2 }}</td>
+        <td>Bs. {{ c.monto_cuota|floatformat:2 }}</td>
+        <td>Bs. {{ c.saldo_cuota|floatformat:2 }}</td>
+        <td>{{ c.get_estado_display }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="2">Totales</th>
+        <th>Bs. {{ totales.total_capital|floatformat:2 }}</th>
+        <th>Bs. {{ totales.total_interes|floatformat:2 }}</th>
+        <th>Bs. {{ totales.total_cuotas|floatformat:2 }}</th>
+        <th colspan="2"></th>
+      </tr>
+    </tfoot>
+  </table>
+</article>
 {% endblock %}

@@ -1,13 +1,13 @@
 from decimal import Decimal
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
 
 from solicitudes.models import SolicitudCredito
-from usuarios.models import Auditoria
+from usuarios.models import Usuario
+from usuarios.views import RolRequiredMixin
 from .forms import EvaluacionCreditoForm
 from .models import EvaluacionCredito
 from .services import (
@@ -18,11 +18,12 @@ from .services import (
 )
 
 
-class EvaluacionListView(LoginRequiredMixin, ListView):
+class EvaluacionListView(RolRequiredMixin, ListView):
     """
     Lista de evaluaciones de crédito realizadas y bandeja de solicitudes pendientes de evaluar.
     """
 
+    roles_permitidos = [Usuario.Rol.ANALISTA, Usuario.Rol.JEFE, Usuario.Rol.GERENTE]
     model = EvaluacionCredito
     template_name = "evaluacion/evaluacion_list.html"
     context_object_name = "evaluaciones"
@@ -55,7 +56,6 @@ class EvaluacionListView(LoginRequiredMixin, ListView):
         context["selected_resultado"] = self.request.GET.get("resultado", "")
         context["niveles_riesgo"] = EvaluacionCredito.NivelRiesgo.choices
         context["resultados"] = EvaluacionCredito.Resultado.choices
-        # Solicitudes pendientes de dictamen técnico
         context["solicitudes_sin_evaluar"] = (
             SolicitudCredito.objects.filter(evaluacion__isnull=True, estado="REGISTRADA")
             .select_related("cliente")
@@ -64,11 +64,12 @@ class EvaluacionListView(LoginRequiredMixin, ListView):
         return context
 
 
-class EvaluacionDetailView(LoginRequiredMixin, DetailView):
+class EvaluacionDetailView(RolRequiredMixin, DetailView):
     """
     Detalle de dictamen técnico, scoring del buró y capacidad de pago (CU03 / CU04 / CU05).
     """
 
+    roles_permitidos = [Usuario.Rol.ANALISTA, Usuario.Rol.JEFE, Usuario.Rol.GERENTE]
     model = EvaluacionCredito
     template_name = "evaluacion/evaluacion_detail.html"
     context_object_name = "evaluacion"
@@ -95,11 +96,12 @@ class EvaluacionDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class EvaluacionCreateView(LoginRequiredMixin, CreateView):
+class EvaluacionCreateView(RolRequiredMixin, CreateView):
     """
-    CU04 / CU05 / RF05 / RF06: Registro o actualización de evaluación técnica.
+    CU04 / CU05 / RF05 / RF06: Registro o actualización de evaluación técnica (Actor: Analista).
     """
 
+    roles_permitidos = [Usuario.Rol.ANALISTA]
     model = EvaluacionCredito
     form_class = EvaluacionCreditoForm
     template_name = "evaluacion/evaluacion_form.html"
@@ -176,10 +178,12 @@ class EvaluacionCreateView(LoginRequiredMixin, CreateView):
         return redirect("evaluacion:detalle", pk=evaluacion.pk)
 
 
-class ConsultarRiesgoExternoView(LoginRequiredMixin, View):
+class ConsultarRiesgoExternoView(RolRequiredMixin, View):
     """
-    CU03 / RF04: Consulta interactiva al buró externo para una evaluación o solicitud.
+    CU03 / RF04: Consulta interactiva al buró externo para una evaluación (Actor: Analista).
     """
+
+    roles_permitidos = [Usuario.Rol.ANALISTA]
 
     def get(self, request, pk):
         evaluacion = get_object_or_404(EvaluacionCredito, pk=pk)
@@ -194,7 +198,8 @@ class ConsultarRiesgoExternoView(LoginRequiredMixin, View):
         return redirect("evaluacion:detalle", pk=evaluacion.pk)
 
 
-class EvaluacionDeleteView(LoginRequiredMixin, DeleteView):
+class EvaluacionDeleteView(RolRequiredMixin, DeleteView):
+    roles_permitidos = [Usuario.Rol.ANALISTA, Usuario.Rol.JEFE]
     model = EvaluacionCredito
     template_name = "evaluacion/evaluacion_confirm_delete.html"
     success_url = reverse_lazy("evaluacion:listado")

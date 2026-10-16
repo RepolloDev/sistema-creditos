@@ -1,86 +1,63 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Control de Mora y Cobranza{% endblock %}
-{% block breadcrumb %}Pagos / Control de Mora{% endblock %}
-{% block page_title %}Monitor de Control de Mora e Interés Penal{% endblock %}
 
-{% block top_actions %}
-<div class="d-flex gap-2">
-  <form method="post">
-    {% csrf_token %}
-    <button type="submit" class="btn-vk-primary">Ejecutar Barrido Diario de Mora</button>
-  </form>
-  <a href="{% url 'pagos:listado' %}" class="btn-vk-outline text-decoration-none">Volver a Caja</a>
-</div>
+{% block page_title %}Control de Mora{% endblock %}
+
+{% block actions %}
+{% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Actualizar Mora</button>
+</form>
+{% endif %}
+<a href="{% url 'pagos:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
-{% block dashboard_content %}
-<!-- Tarjetas Resumen de Mora -->
-<div class="row g-3 mb-4">
-  <div class="col-md-6">
-    <div class="bg-white border border-dark p-3">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Créditos en Estado de Mora</div>
-      <div class="fs-3 fw-bold font-mono text-danger mt-1">{{ total_creditos_mora }}</div>
-      <div class="small text-muted">Operaciones con incumplimiento de cronograma</div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="bg-white border border-dark p-3">
-      <div class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total Cuotas Vencidas</div>
-      <div class="fs-3 fw-bold font-mono text-danger mt-1">{{ total_cuotas_vencidas }}</div>
-      <div class="small text-muted">Cuotas con fecha de vencimiento superada y recargo penal activo</div>
-    </div>
-  </div>
+{% block content %}
+<div class="grid">
+  <article>
+    <small>Créditos en Mora</small>
+    <h3>{{ total_creditos_mora }}</h3>
+  </article>
+  <article>
+    <small>Cuotas Vencidas</small>
+    <h3>{{ total_cuotas_vencidas }}</h3>
+  </article>
 </div>
 
-<!-- Tabla de Cuotas en Mora con Cálculo de Interés Penal -->
-<div class="bg-white border border-dark">
-  <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center bg-light">
-    <span class="fw-bold text-uppercase" style="font-size: 0.78rem; letter-spacing: 0.05em;">Detalle de Cuotas en Mora y Liquidación de Recargo Penal</span>
-    <span class="font-mono small text-muted">Tasa Penal: 6.00% Anual sobre Capital Vencido</span>
-  </div>
-  <div class="table-responsive">
-    <table class="table table-vk mb-0">
-      <thead>
-        <tr>
-          <th>Crédito / Cuota</th>
-          <th>Titular (C.I.)</th>
-          <th>Vencimiento</th>
-          <th>Días Atraso</th>
-          <th>Cuota Base</th>
-          <th>Interés Penal</th>
-          <th>Total Exigible</th>
-          <th class="text-end">Acción</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in lista_mora %}
-        <tr>
-          <td class="font-mono fw-bold">
-            <a href="{% url 'creditos:detalle' item.credito.pk %}" class="text-dark">Créd. #{{ item.credito.id }}</a>
-            — #{{ item.cuota.numero_cuota }}
-          </td>
-          <td>
-            <div class="fw-medium">{{ item.cliente.apellidos }}, {{ item.cliente.nombres }}</div>
-            <div class="font-mono small text-muted">{{ item.cliente.ci }} | Tel: {{ item.cliente.telefono }}</div>
-          </td>
-          <td class="font-mono small">{{ item.cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
-          <td class="font-mono fw-bold text-danger">{{ item.dias_atraso }} días</td>
-          <td class="font-mono">Bs. {{ item.cuota.monto_cuota|floatformat:2 }}</td>
-          <td class="font-mono text-danger">+ Bs. {{ item.interes_penal|floatformat:2 }}</td>
-          <td class="font-mono fw-bold">Bs. {{ item.total_exigible|floatformat:2 }}</td>
-          <td class="text-end">
-            <a href="{% url 'pagos:registrar' %}?credito_id={{ item.credito.pk }}" class="btn-vk-primary text-decoration-none" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Regularizar</a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="8" class="text-center text-muted py-4">
-            No existen cuotas vencidas en este momento. Puede pulsar "Ejecutar Barrido Diario de Mora" para verificar fechas de vencimiento.
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+<figure>
+  <table>
+    <thead>
+      <tr>
+        <th>Crédito / Cuota</th>
+        <th>Titular (C.I.)</th>
+        <th>Vencimiento</th>
+        <th>Atraso</th>
+        <th>Cuota Base</th>
+        <th>Interés Penal</th>
+        <th>Total Exigible</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in lista_mora %}
+      <tr>
+        <td><a href="{% url 'creditos:detalle' item.credito.pk %}">Créd. #{{ item.credito.id }}</a> — #{{ item.cuota.numero_cuota }}</td>
+        <td>{{ item.cliente.apellidos }}, {{ item.cliente.nombres }} ({{ item.cliente.ci }})</td>
+        <td>{{ item.cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
+        <td>{{ item.dias_atraso }} días</td>
+        <td>Bs. {{ item.cuota.monto_cuota|floatformat:2 }}</td>
+        <td>Bs. {{ item.interes_penal|floatformat:2 }}</td>
+        <td><strong>Bs. {{ item.total_exigible|floatformat:2 }}</strong></td>
+        <td>
+          {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
+          <a href="{% url 'pagos:registrar' %}?credito_id={{ item.credito.pk }}" role="button" class="outline">Cobrar</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8">Sin cuotas vencidas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</figure>
 {% endblock %}

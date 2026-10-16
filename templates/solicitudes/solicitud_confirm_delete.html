@@ -1,27 +1,16 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Eliminar Solicitud #{{ object.id }}{% endblock %}
-{% block breadcrumb %}Solicitudes / Eliminar #{{ object.id }}{% endblock %}
-{% block page_title %}Confirmar Eliminación de Solicitud{% endblock %}
 
-{% block dashboard_content %}
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="bg-white border border-dark p-4">
-      <h6 class="fw-bold text-uppercase text-danger border-bottom border-dark pb-2 mb-3">
-        Confirmar Eliminación de Trámite (Modo MVP)
-      </h6>
-      <p class="small">
-        ¿Está seguro que desea eliminar la <strong>Solicitud #{{ object.id }}</strong> perteneciente a <strong>{{ object.cliente.nombres }} {{ object.cliente.apellidos }}</strong> por <span class="font-mono fw-bold">Bs. {{ object.monto_solicitado|floatformat:2 }}</span>?
-      </p>
-      <p class="small text-muted">
-        Se eliminarán también las garantías, evaluaciones y el crédito asociado si existiera.
-      </p>
-      <form method="post" class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
-        {% csrf_token %}
-        <a href="{% url 'solicitudes:detalle' object.pk %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
-        <button type="submit" class="btn-vk-danger">Confirmar Eliminación</button>
-      </form>
+{% block page_title %}Eliminar Solicitud #{{ object.id }}{% endblock %}
+
+{% block content %}
+<article>
+  <p>¿Confirmar eliminación de la <strong>Solicitud #{{ object.id }}</strong> ({{ object.cliente.nombres }} {{ object.cliente.apellidos }})?</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="actions">
+      <a href="{% url 'solicitudes:detalle' object.pk %}" role="button" class="outline">Cancelar</a>
+      <button type="submit" class="danger">Eliminar</button>
     </div>
-  </div>
-</div>
+  </form>
+</article>
 {% endblock %}

@@ -1,47 +1,31 @@
 {% extends "base_dashboard.html" %}
-{% block title %}{{ titulo }}{% endblock %}
-{% block breadcrumb %}Solicitudes / {{ titulo }}{% endblock %}
+
 {% block page_title %}{{ titulo }}{% endblock %}
 
-{% block top_actions %}
-<a href="{% url 'solicitudes:listado' %}" class="btn-vk-outline text-decoration-none">Volver a Solicitudes</a>
+{% block actions %}
+<a href="{% url 'solicitudes:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
-{% block dashboard_content %}
-<div class="row justify-content-center">
-  <div class="col-lg-7">
-    <div class="bg-white border border-dark p-4">
-      <h6 class="fw-bold text-uppercase border-bottom border-dark pb-2 mb-4" style="font-size: 0.8rem; letter-spacing: 0.05em;">
-        Parámetros Financieros del Trámite
-      </h6>
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-        <div class="alert alert-danger rounded-0 border-dark small">
-          {{ form.non_field_errors }}
-        </div>
-        {% endif %}
+{% block content %}
+<article>
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <p><mark>{{ form.non_field_errors|striptags }}</mark></p>
+    {% endif %}
 
-        <div class="row g-3">
-          {% for field in form %}
-          <div class="col-12">
-            <label for="{{ field.id_for_label }}" class="form-label fw-bold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.04em;">
-              {{ field.label }}
-            </label>
-            {{ field }}
-            {% if field.errors %}
-            <div class="text-danger small mt-1 fw-medium">{{ field.errors|striptags }}</div>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
+    {% for field in form %}
+      <label>
+        {{ field.label }}
+        {{ field }}
+        {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
+      </label>
+    {% endfor %}
 
-        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
-          <a href="{% url 'solicitudes:listado' %}" class="btn-vk-outline text-decoration-none">Cancelar</a>
-          <button type="submit" class="btn-vk-primary">{{ boton_texto }}</button>
-        </div>
-      </form>
+    <div class="actions">
+      <a href="{% url 'solicitudes:listado' %}" role="button" class="outline">Cancelar</a>
+      <button type="submit">{{ boton_texto }}</button>
     </div>
-  </div>
-</div>
+  </form>
+</article>
 {% endblock %}
