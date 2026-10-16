@@ -53,11 +53,11 @@
     <tbody>
       {% for cr in reporte.creditos %}
       <tr>
-        <td>{{ cr.numero_credito }}</td>
-        <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} ({{ cr.solicitud.cliente.ci }})</td>
-        <td>Bs. {{ cr.monto_aprobado|floatformat:2 }}</td>
-        <td>Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
-        <td>{{ cr.get_estado_display }}</td>
+        <td class="mono">{{ cr.numero_credito }}</td>
+        <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} (<span class="mono">{{ cr.solicitud.cliente.ci }}</span>)</td>
+        <td class="mono">Bs. {{ cr.monto_aprobado|floatformat:2 }}</td>
+        <td class="mono">Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
+        <td><span class="badge badge-{{ cr.estado|lower }}">{{ cr.get_estado_display }}</span></td>
         <td>
           <div class="actions">
             <a href="{% url 'creditos:detalle' cr.pk %}" role="button" class="outline">Ver</a>

@@ -110,7 +110,7 @@ class RolRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
             return super().handle_no_permission()
         messages.error(
             self.request,
-            f"Acceso restringido para el rol {self.request.user.get_rol_display()}. Operación no autorizada según perfil (RNF01).",
+            f"Acceso restringido para el rol {self.request.user.get_rol_display()}. Operación no autorizada.",
         )
         return redirect("dashboard")
 

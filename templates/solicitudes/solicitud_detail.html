@@ -17,30 +17,45 @@
   <a href="{% url 'creditos:rechazar' solicitud.pk %}" role="button" class="outline danger">Rechazar</a>
   {% endif %}
 {% endif %}
-{% if request.user.rol in "ADMINISTRADOR,OFICIAL,JEFE" or request.user.is_superuser %}
+{% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
 <a href="{% url 'solicitudes:eliminar' solicitud.pk %}" role="button" class="outline danger">Eliminar</a>
 {% endif %}
 <a href="{% url 'solicitudes:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
 {% block content %}
+<div class="stepper">
+  <div class="step {% if solicitud.estado == 'REGISTRADA' %}active{% elif solicitud.estado != 'REGISTRADA' %}completed{% endif %}">
+    <span class="step-num">1</span> Solicitud
+  </div>
+  <div class="step {% if solicitud.estado == 'EN_EVALUACION' %}active{% elif evaluacion or credito %}completed{% endif %}">
+    <span class="step-num">2</span> Evaluación
+  </div>
+  <div class="step {% if credito and credito.estado == 'APROBADO' %}active{% elif credito %}completed{% elif solicitud.estado == 'RECHAZADA' %}rejected{% endif %}">
+    <span class="step-num">3</span> Aprobación
+  </div>
+  <div class="step {% if credito.estado == 'VIGENTE' or credito.estado == 'PAGADO' %}completed{% endif %}">
+    <span class="step-num">4</span> Desembolso
+  </div>
+</div>
+
 <div class="grid">
   <article>
     <header><strong>Datos de la Solicitud</strong></header>
-    <p><strong>Cliente:</strong> <a href="{% url 'clientes:detalle' solicitud.cliente.pk %}">{{ solicitud.cliente.nombres }} {{ solicitud.cliente.apellidos }}</a> ({{ solicitud.cliente.ci }})</p>
-    <p><strong>Monto Solicitado:</strong> Bs. {{ solicitud.monto_solicitado|floatformat:2 }} ({{ solicitud.plazo_meses }} meses)</p>
+    <p><strong>Cliente:</strong> <a href="{% url 'clientes:detalle' solicitud.cliente.pk %}">{{ solicitud.cliente.nombres }} {{ solicitud.cliente.apellidos }}</a> (<span class="mono">{{ solicitud.cliente.ci }}</span>)</p>
+    <p><strong>Monto Solicitado:</strong> <span class="mono">Bs. {{ solicitud.monto_solicitado|floatformat:2 }}</span> ({{ solicitud.plazo_meses }} meses)</p>
     <p><strong>Destino:</strong> {{ solicitud.destino }}</p>
-    <p><strong>Estado:</strong> {{ solicitud.get_estado_display }}</p>
+    <p><strong>Estado:</strong> <span class="badge badge-{{ solicitud.estado|lower }}">{{ solicitud.get_estado_display }}</span></p>
     {% if solicitud.motivo_rechazo %}
-    <p><strong>Motivo Rechazo:</strong> {{ solicitud.motivo_rechazo }}</p>
+    <p><strong>Motivo Rechazo:</strong> <mark>{{ solicitud.motivo_rechazo }}</mark></p>
     {% endif %}
   </article>
 
   <article>
     <header><strong>Evaluación y Crédito</strong></header>
     {% if evaluacion %}
-      <p><strong>Capacidad de Pago:</strong> Bs. {{ evaluacion.capacidad_pago|floatformat:2 }}</p>
-      <p><strong>Riesgo:</strong> {{ evaluacion.get_nivel_riesgo_display }} | <strong>Resultado:</strong> {{ evaluacion.get_resultado_display }}</p>
+      <p><strong>Capacidad de Pago:</strong> <span class="mono">Bs. {{ evaluacion.capacidad_pago|floatformat:2 }}</span></p>
+      <p><strong>Riesgo:</strong> <span class="badge">{{ evaluacion.get_nivel_riesgo_display }}</span> | <strong>Resultado:</strong> <span class="badge badge-{{ evaluacion.resultado|lower }}">{{ evaluacion.get_resultado_display }}</span></p>
       {% if request.user.rol in "ADMINISTRADOR,ANALISTA,JEFE,GERENTE" or request.user.is_superuser %}
       <p><a href="{% url 'evaluacion:detalle' evaluacion.pk %}">Ver Dictamen #{{ evaluacion.id }}</a></p>
       {% endif %}
@@ -50,7 +65,7 @@
 
     {% if credito %}
       <hr>
-      <p><strong>Crédito Aprobado:</strong> <a href="{% url 'creditos:detalle' credito.pk %}">{{ credito.numero_credito }}</a> ({{ credito.get_estado_display }})</p>
+      <p><strong>Crédito:</strong> <a href="{% url 'creditos:detalle' credito.pk %}"><span class="mono">{{ credito.numero_credito }}</span></a> <span class="badge badge-{{ credito.estado|lower }}">{{ credito.get_estado_display }}</span></p>
     {% endif %}
   </article>
 </div>
@@ -75,7 +90,7 @@
         <td>Bs. {{ g.valor|floatformat:2 }}</td>
         <td>{{ g.get_estado_display }}</td>
         <td>
-          {% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
+          {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
           <form method="post" action="{% url 'solicitudes:garantia_eliminar' g.pk %}">
             {% csrf_token %}
             <button type="submit" class="outline danger">Quitar</button>

@@ -69,7 +69,7 @@ class ClienteCreateView(RolRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["titulo"] = "Registrar Nuevo Cliente (CU01)"
+        context["titulo"] = "Registrar Nuevo Cliente"
         context["boton_texto"] = "Guardar Cliente"
         return context
 
@@ -119,19 +119,19 @@ class ClienteUpdateView(RolRequiredMixin, UpdateView):
         )
         messages.success(
             self.request,
-            f"Datos del cliente '{self.object.ci}' actualizados correctamente (RF02).",
+            f"Datos del cliente '{self.object.ci}' actualizados correctamente.",
         )
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["titulo"] = f"Actualizar Cliente: {self.object.ci} (RF02)"
+        context["titulo"] = f"Actualizar Cliente: {self.object.ci}"
         context["boton_texto"] = "Actualizar Datos"
         return context
 
 
 class ClienteDeleteView(RolRequiredMixin, DeleteView):
-    roles_permitidos = [Usuario.Rol.OFICIAL]
+    roles_permitidos = [Usuario.Rol.ADMINISTRADOR]
     model = Cliente
     template_name = "clientes/cliente_confirm_delete.html"
     success_url = reverse_lazy("clientes:listado")

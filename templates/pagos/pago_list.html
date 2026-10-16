@@ -48,7 +48,7 @@
         <td>
           <div class="actions">
             <a href="{% url 'pagos:comprobante' p.pk %}" role="button" class="outline">Recibo</a>
-            {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
+            {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
             <a href="{% url 'pagos:eliminar' p.pk %}" role="button" class="outline danger">Anular</a>
             {% endif %}
           </div>

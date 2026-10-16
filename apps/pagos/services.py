@@ -63,7 +63,7 @@ def registrar_pago_cuota(
     """
     abono = _round(monto)
     if abono <= Decimal("0.00"):
-        raise ValidationError("RN07: El monto abonado debe ser mayor a 0.00.")
+        raise ValidationError("El monto abonado debe ser mayor a 0.00.")
 
     cuota = Cuota.objects.select_for_update().select_related("credito").get(pk=cuota_id)
     credito = Credito.objects.select_for_update().get(pk=cuota.credito_id)
@@ -133,7 +133,7 @@ def aplicar_imputacion_cascada(
     """
     remanente = _round(monto_total)
     if remanente <= Decimal("0.00"):
-        raise ValidationError("El monto a abonar debe ser positivo (RN07).")
+        raise ValidationError("El monto a abonar debe ser positivo.")
 
     cuotas_pendientes = (
         Cuota.objects.select_for_update()

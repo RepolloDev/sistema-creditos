@@ -60,9 +60,9 @@ def registrar_garantia(
     CU06 / RF07 / RN13: Registra una garantía asociada a una solicitud de crédito.
     """
     if valor <= Decimal("0.00"):
-        raise ValidationError("El valor estimado de la garantía debe ser positivo (RN13).")
+        raise ValidationError("El valor estimado de la garantía debe ser positivo.")
     if not descripcion or not descripcion.strip():
-        raise ValidationError("La descripción de la garantía es obligatoria (RN13).")
+        raise ValidationError("La descripción de la garantía es obligatoria.")
 
     solicitud = SolicitudCredito.objects.get(pk=solicitud_id)
 

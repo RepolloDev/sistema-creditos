@@ -12,7 +12,7 @@
   <a href="{% url 'creditos:rechazar' evaluacion.solicitud.pk %}" role="button" class="outline danger">Rechazar</a>
   {% endif %}
 {% endif %}
-{% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
+{% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
 <a href="{% url 'evaluacion:eliminar' evaluacion.pk %}" role="button" class="outline danger">Eliminar</a>
 {% endif %}
 <a href="{% url 'evaluacion:listado' %}" role="button" class="outline">Volver</a>
@@ -23,17 +23,17 @@
   <article>
     <header><strong>Resultado Financiero</strong></header>
     <p><strong>Solicitud:</strong> <a href="{% url 'solicitudes:detalle' evaluacion.solicitud.pk %}">#{{ evaluacion.solicitud.id }}</a> ({{ evaluacion.solicitud.cliente.nombres }} {{ evaluacion.solicitud.cliente.apellidos }})</p>
-    <p><strong>Ingresos:</strong> Bs. {{ evaluacion.ingresos|floatformat:2 }} | <strong>Gastos:</strong> Bs. {{ evaluacion.gastos|floatformat:2 }}</p>
-    <p><strong>Capacidad de Pago:</strong> Bs. {{ evaluacion.capacidad_pago|floatformat:2 }} (Cuota máx. 40%: Bs. {{ cuota_maxima|floatformat:2 }})</p>
-    <p><strong>Cuota Estimada:</strong> Bs. {{ cuota_estimada|floatformat:2 }}</p>
-    <p><strong>Nivel de Riesgo:</strong> {{ evaluacion.get_nivel_riesgo_display }} | <strong>Dictamen:</strong> {{ evaluacion.get_resultado_display }}</p>
+    <p><strong>Ingresos:</strong> <span class="mono">Bs. {{ evaluacion.ingresos|floatformat:2 }}</span> | <strong>Gastos:</strong> <span class="mono">Bs. {{ evaluacion.gastos|floatformat:2 }}</span></p>
+    <p><strong>Capacidad de Pago:</strong> <span class="mono">Bs. {{ evaluacion.capacidad_pago|floatformat:2 }}</span> (Cuota máx. 40%: <span class="mono">Bs. {{ cuota_maxima|floatformat:2 }}</span>)</p>
+    <p><strong>Cuota Estimada:</strong> <span class="mono">Bs. {{ cuota_estimada|floatformat:2 }}</span></p>
+    <p><strong>Nivel de Riesgo:</strong> <span class="badge">{{ evaluacion.get_nivel_riesgo_display }}</span> | <strong>Dictamen:</strong> <span class="badge badge-{{ evaluacion.resultado|lower }}">{{ evaluacion.get_resultado_display }}</span></p>
   </article>
 
   <article>
     <header><strong>Central de Riesgos</strong></header>
-    <p><strong>Score Crediticio:</strong> {{ buro.score }} puntos ({{ buro.nivel_riesgo }})</p>
-    <p><strong>Deuda Externa:</strong> Bs. {{ buro.deuda_vigente|floatformat:2 }} ({{ buro.entidades_deuda }} entidades)</p>
-    <p><strong>Mora Activa:</strong> {% if buro.tiene_mora %}Sí{% else %}No{% endif %}</p>
+    <p><strong>Score Crediticio:</strong> <span class="mono font-bold">{{ buro.score }} pts</span> (<span class="badge">{{ buro.nivel_riesgo }}</span>)</p>
+    <p><strong>Deuda Externa:</strong> <span class="mono">Bs. {{ buro.deuda_vigente|floatformat:2 }}</span> ({{ buro.entidades_deuda }} entidades)</p>
+    <p><strong>Mora Activa en Buró:</strong> {% if buro.tiene_mora %}<span class="badge badge-rechazado">Sí (En Mora)</span>{% else %}<span class="badge badge-aprobado">No</span>{% endif %}</p>
     <p><small>{{ buro.observaciones }}</small></p>
   </article>
 </div>

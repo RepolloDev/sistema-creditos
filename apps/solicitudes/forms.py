@@ -13,6 +13,14 @@ class SolicitudCreditoForm(forms.ModelForm):
             "destino": forms.Textarea(attrs={"rows": 2}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from clientes.models import Cliente
+        self.fields["cliente"].queryset = Cliente.objects.order_by("apellidos", "nombres")
+        self.fields["cliente"].label_from_instance = (
+            lambda c: f"{c.apellidos}, {c.nombres} ({c.ci})"
+        )
+
     def clean_monto_solicitado(self):
         monto = self.cleaned_data.get("monto_solicitado")
         if not monto or monto <= Decimal("0.00"):

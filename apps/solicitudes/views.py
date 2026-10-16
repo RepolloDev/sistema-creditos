@@ -73,7 +73,7 @@ class SolicitudCreateView(RolRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["titulo"] = "Registrar Nueva Solicitud de Crédito (CU02)"
+        context["titulo"] = "Registrar Nueva Solicitud de Crédito"
         context["boton_texto"] = "Radicar Solicitud"
         return context
 
@@ -92,7 +92,7 @@ class SolicitudCreateView(RolRequiredMixin, CreateView):
         )
         messages.success(
             self.request,
-            f"Solicitud #{self.object.pk} registrada en estado REGISTRADA (RN02).",
+            f"Solicitud #{self.object.pk} registrada en estado REGISTRADA.",
         )
         return response
 
@@ -170,14 +170,14 @@ class GarantiaCreateView(RolRequiredMixin, CreateView):
 
 
 class SolicitudDeleteView(RolRequiredMixin, DeleteView):
-    roles_permitidos = [Usuario.Rol.OFICIAL, Usuario.Rol.JEFE]
+    roles_permitidos = [Usuario.Rol.ADMINISTRADOR]
     model = SolicitudCredito
     template_name = "solicitudes/solicitud_confirm_delete.html"
     success_url = reverse_lazy("solicitudes:listado")
 
 
 class GarantiaDeleteView(RolRequiredMixin, DeleteView):
-    roles_permitidos = [Usuario.Rol.OFICIAL]
+    roles_permitidos = [Usuario.Rol.ADMINISTRADOR]
     model = Garantia
 
     def get_success_url(self):

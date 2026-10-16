@@ -18,7 +18,7 @@ def registrar_cliente(datos: dict, usuario: Optional[Usuario] = None) -> Cliente
     if not ci:
         raise ValidationError("La Cédula de Identidad (CI) es obligatoria.")
     if Cliente.objects.filter(ci__iexact=ci).exists():
-        raise ValidationError(f"Ya existe un cliente registrado con el CI '{ci}' (RN01).")
+        raise ValidationError(f"Ya existe un cliente registrado con el CI '{ci}'.")
 
     ingresos = Decimal(str(datos.get("ingresos_mensuales", "0.00")))
     if ingresos < Decimal("0.00"):

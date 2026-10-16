@@ -41,17 +41,17 @@
     <tbody>
       {% for cr in creditos %}
       <tr>
-        <td>#{{ cr.id }}</td>
-        <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} ({{ cr.solicitud.cliente.ci }})</td>
-        <td>{% if cr.contrato %}{{ cr.contrato.numero_contrato }} ({{ cr.contrato.get_estado_display }}){% else %}—{% endif %}</td>
-        <td>Bs. {{ cr.monto_aprobado|floatformat:2 }}</td>
-        <td>Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
-        <td>{{ cr.get_estado_display }}</td>
+        <td class="mono">#{{ cr.id }}</td>
+        <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} (<span class="mono">{{ cr.solicitud.cliente.ci }}</span>)</td>
+        <td>{% if cr.contrato %}<span class="mono">{{ cr.contrato.numero_contrato }}</span> <span class="badge badge-{{ cr.contrato.estado|lower }}">{{ cr.contrato.get_estado_display }}</span>{% else %}—{% endif %}</td>
+        <td class="mono">Bs. {{ cr.monto_aprobado|floatformat:2 }}</td>
+        <td class="mono">Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
+        <td><span class="badge badge-{{ cr.estado|lower }}">{{ cr.get_estado_display }}</span></td>
         <td>
           <div class="actions">
             <a href="{% url 'creditos:detalle' cr.pk %}" role="button" class="outline">Ver</a>
             <a href="{% url 'creditos:cronograma' cr.pk %}" role="button" class="outline">Cronograma</a>
-            {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
+            {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
             <a href="{% url 'creditos:eliminar' cr.pk %}" role="button" class="outline danger">Eliminar</a>
             {% endif %}
           </div>

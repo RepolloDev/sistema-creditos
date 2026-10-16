@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="get" role="search">
+<form method="get" class="search-bar">
   <input type="search" name="q" value="{{ q }}" placeholder="Buscar por C.I., nombres o apellidos...">
   <button type="submit">Buscar</button>
 </form>
@@ -37,6 +37,8 @@
             <a href="{% url 'clientes:detalle' c.pk %}" role="button" class="outline">Ver</a>
             {% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
             <a href="{% url 'clientes:editar' c.pk %}" role="button" class="outline">Editar</a>
+            {% endif %}
+            {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
             <a href="{% url 'clientes:eliminar' c.pk %}" role="button" class="outline danger">Eliminar</a>
             {% endif %}
           </div>

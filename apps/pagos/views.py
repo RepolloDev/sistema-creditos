@@ -109,7 +109,7 @@ class RegistrarPagoView(RolRequiredMixin, CreateView):
         elif credito_id:
             cuota = (
                 Cuota.objects.filter(credito_id=credito_id)
-                .exclude(estado="PAGADA")
+                .filter(estado__in=["PENDIENTE", "VENCIDA"], saldo_cuota__gt=0)
                 .order_by("numero_cuota")
                 .first()
             )
@@ -122,7 +122,7 @@ class RegistrarPagoView(RolRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         q_ci = self.request.GET.get("q_ci", "").strip()
         context["q_ci"] = q_ci
-        context["titulo"] = "Cobro de Cuota en Ventanilla (CU12)"
+        context["titulo"] = "Cobro de Cuota en Ventanilla"
         context["boton_texto"] = "Procesar Pago y Emitir Recibo"
         if q_ci:
             context["creditos_encontrados"] = (
@@ -131,7 +131,11 @@ class RegistrarPagoView(RolRequiredMixin, CreateView):
                     | Q(numero_credito__icontains=q_ci)
                     | Q(solicitud__cliente__apellidos__icontains=q_ci)
                 )
-                .exclude(estado="CANCELADO")
+                .filter(
+                    estado__in=["VIGENTE", "EN_MORA"],
+                    cuotas__estado__in=["PENDIENTE", "VENCIDA"],
+                )
+                .distinct()
                 .select_related("solicitud__cliente")
             )
         return context
@@ -159,7 +163,7 @@ class RegistrarPagoView(RolRequiredMixin, CreateView):
 
 class ControlMoraView(RolRequiredMixin, TemplateView):
     """
-    CU13 / RF14 / RN09: Panel de monitoreo y ejecución de control de mora.
+    Panel de monitoreo y ejecución de control de mora.
     """
 
     roles_permitidos = [Usuario.Rol.CAJERO, Usuario.Rol.JEFE, Usuario.Rol.GERENTE]
@@ -169,7 +173,7 @@ class ControlMoraView(RolRequiredMixin, TemplateView):
         resultado = ejecutar_control_mora(usuario=request.user)
         messages.warning(
             request,
-            f"Barrido de mora completado: {resultado['cuotas_marcadas_vencidas']} nuevas cuotas marcadas VENCIDAS y {resultado['creditos_pasados_a_mora']} créditos actualizados a EN_MORA (RN09).",
+            f"Barrido de mora completado: {resultado['cuotas_marcadas_vencidas']} nuevas cuotas marcadas VENCIDAS y {resultado['creditos_pasados_a_mora']} créditos actualizados a EN_MORA.",
         )
         return redirect("pagos:control_mora")
 
@@ -203,7 +207,7 @@ class ControlMoraView(RolRequiredMixin, TemplateView):
 
 
 class PagoDeleteView(RolRequiredMixin, DeleteView):
-    roles_permitidos = [Usuario.Rol.CAJERO]
+    roles_permitidos = [Usuario.Rol.ADMINISTRADOR]
     model = Pago
     template_name = "pagos/pago_confirm_delete.html"
     success_url = reverse_lazy("pagos:listado")

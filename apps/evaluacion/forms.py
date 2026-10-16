@@ -25,6 +25,20 @@ class EvaluacionCreditoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["capacidad_pago"].required = False
+        from django.db.models import Q
+        from solicitudes.models import SolicitudCredito
+
+        qs = SolicitudCredito.objects.select_related("cliente").filter(
+            estado__in=["REGISTRADA", "EN_EVALUACION"]
+        )
+        if self.instance and self.instance.pk:
+            qs = qs.filter(Q(evaluacion__isnull=True) | Q(pk=self.instance.solicitud_id))
+        else:
+            qs = qs.filter(evaluacion__isnull=True)
+        self.fields["solicitud"].queryset = qs.order_by("-id")
+        self.fields["solicitud"].label_from_instance = (
+            lambda s: f"Solicitud #{s.pk} — {s.cliente.apellidos}, {s.cliente.nombres} (Bs. {s.monto_solicitado:.2f})"
+        )
 
     def clean(self):
         cleaned_data = super().clean()

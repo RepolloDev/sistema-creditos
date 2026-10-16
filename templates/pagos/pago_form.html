@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="get" role="search">
+<form method="get" class="search-bar">
   <input type="search" name="q_ci" value="{{ q_ci }}" placeholder="Buscar créditos activos por C.I. o apellido...">
   <button type="submit" class="outline">Buscar Cliente</button>
 </form>
@@ -23,6 +23,8 @@
     {% endfor %}
   </div>
 </article>
+{% elif q_ci %}
+<p><small>No se encontraron créditos activos con cuotas pendientes para "{{ q_ci }}".</small></p>
 {% endif %}
 
 <article>

@@ -6,6 +6,8 @@
 {% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
 <a href="{% url 'solicitudes:crear' %}?cliente_id={{ cliente.pk }}" role="button">+ Solicitud</a>
 <a href="{% url 'clientes:editar' cliente.pk %}" role="button" class="outline">Editar</a>
+{% endif %}
+{% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
 <a href="{% url 'clientes:eliminar' cliente.pk %}" role="button" class="outline danger">Eliminar</a>
 {% endif %}
 <a href="{% url 'clientes:listado' %}" role="button" class="outline">Volver</a>
@@ -39,13 +41,13 @@
     <tbody>
       {% for s in solicitudes %}
       <tr>
-        <td>#{{ s.id }}</td>
-        <td>Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
+        <td class="mono">#{{ s.id }}</td>
+        <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
         <td>{{ s.plazo_meses }} meses</td>
-        <td>{{ s.get_estado_display }}</td>
+        <td><span class="badge badge-{{ s.estado|lower }}">{{ s.get_estado_display }}</span></td>
         <td>
           {% if s.credito %}
-          <a href="{% url 'creditos:detalle' s.credito.pk %}">{{ s.credito.numero_credito }}</a>
+          <a href="{% url 'creditos:detalle' s.credito.pk %}"><span class="mono">{{ s.credito.numero_credito }}</span></a>
           {% else %}—{% endif %}
         </td>
         <td>

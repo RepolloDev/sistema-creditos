@@ -38,12 +38,12 @@
     <tbody>
       {% for s in solicitudes %}
       <tr>
-        <td>#{{ s.id }}</td>
-        <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }} ({{ s.cliente.ci }})</td>
-        <td>Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
+        <td class="mono">#{{ s.id }}</td>
+        <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }} (<span class="mono">{{ s.cliente.ci }}</span>)</td>
+        <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
         <td>{{ s.plazo_meses }} m.</td>
         <td>{{ s.destino|truncatechars:30 }}</td>
-        <td>{{ s.get_estado_display }}</td>
+        <td><span class="badge badge-{{ s.estado|lower }}">{{ s.get_estado_display }}</span></td>
         <td>
           <div class="actions">
             <a href="{% url 'solicitudes:detalle' s.pk %}" role="button" class="outline">Ver</a>
@@ -52,7 +52,7 @@
               <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" role="button">Evaluar</a>
               {% endif %}
             {% endif %}
-            {% if request.user.rol in "ADMINISTRADOR,OFICIAL,JEFE" or request.user.is_superuser %}
+            {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
             <a href="{% url 'solicitudes:eliminar' s.pk %}" role="button" class="outline danger">Eliminar</a>
             {% endif %}
           </div>

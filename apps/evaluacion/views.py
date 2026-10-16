@@ -139,7 +139,7 @@ class EvaluacionCreateView(RolRequiredMixin, CreateView):
         sol = self.get_solicitud_preseleccionada()
         context["solicitud_obj"] = sol
         context["solicitud_preseleccionada"] = sol
-        context["titulo"] = "Emitir Dictamen de Evaluación Crediticia (CU04 / CU05)"
+        context["titulo"] = "Emitir Dictamen de Evaluación Crediticia"
         context["boton_texto"] = "Guardar Dictamen"
         if sol:
             context["buro"] = consultar_historial_externo(
@@ -199,7 +199,7 @@ class ConsultarRiesgoExternoView(RolRequiredMixin, View):
 
 
 class EvaluacionDeleteView(RolRequiredMixin, DeleteView):
-    roles_permitidos = [Usuario.Rol.ANALISTA, Usuario.Rol.JEFE]
+    roles_permitidos = [Usuario.Rol.ADMINISTRADOR]
     model = EvaluacionCredito
     template_name = "evaluacion/evaluacion_confirm_delete.html"
     success_url = reverse_lazy("evaluacion:listado")

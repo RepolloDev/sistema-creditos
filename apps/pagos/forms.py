@@ -17,14 +17,18 @@ class PagoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         qs = (
             Cuota.objects.select_related("credito", "credito__solicitud__cliente")
-            .exclude(estado="PAGADA")
+            .filter(
+                credito__estado__in=["VIGENTE", "EN_MORA"],
+                estado__in=["PENDIENTE", "VENCIDA"],
+                saldo_cuota__gt=Decimal("0.00"),
+            )
             .order_by("credito__numero_credito", "numero_cuota")
         )
         if credito_id:
             qs = qs.filter(credito_id=credito_id)
         self.fields["cuota"].queryset = qs
         self.fields["cuota"].label_from_instance = (
-            lambda obj: f"{obj.credito.numero_credito} - Cuota #{obj.numero_cuota} (Bs. {obj.saldo_cuota}) - {obj.credito.solicitud.cliente.apellidos}"
+            lambda obj: f"{obj.credito.numero_credito} — Cuota #{obj.numero_cuota} (Saldo: Bs. {obj.saldo_cuota:.2f}) — {obj.credito.solicitud.cliente.apellidos}, {obj.credito.solicitud.cliente.nombres}"
         )
 
     def clean_monto(self):

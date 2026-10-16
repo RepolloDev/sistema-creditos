@@ -634,7 +634,7 @@ def seed_solicitudes_y_prestamos(clientes):
 
     # Generar 5 solicitudes rechazadas con motivo (RN11)
     motivos_rechazo = [
-        "Nivel de endeudamiento vigente excede el 40% admisible (RN03/RF05).",
+        "Nivel de endeudamiento vigente excede el 40% admisible.",
         "Antecedentes crediticios con mora recurrente en buró externo.",
         "Garantía propuesta no cumple con el aforo mínimo requerido.",
         "Ingresos mensuales declarados no fueron sustentados con documentación legal.",

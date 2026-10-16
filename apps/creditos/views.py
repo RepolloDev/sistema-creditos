@@ -139,7 +139,7 @@ class AprobarCreditoView(RolRequiredMixin, FormView):
             )
             messages.success(
                 self.request,
-                f"Crédito {credito.numero_credito} aprobado. Contrato y cronograma generados (CU07, CU09, CU10).",
+                f"Crédito {credito.numero_credito} aprobado. Contrato y cronograma generados.",
             )
             return redirect("creditos:detalle", pk=credito.pk)
         except ValidationError as e:
@@ -177,7 +177,7 @@ class RechazarCreditoView(RolRequiredMixin, FormView):
             )
             messages.warning(
                 self.request,
-                f"Solicitud #{self.solicitud.pk} marcada como RECHAZADA con motivo documentado (RN11).",
+                f"Solicitud #{self.solicitud.pk} marcada como RECHAZADA con motivo documentado.",
             )
             return redirect("solicitudes:detalle", pk=self.solicitud.pk)
         except ValidationError as e:
@@ -286,7 +286,7 @@ class ReportesView(RolRequiredMixin, TemplateView):
 
 
 class CreditoDeleteView(RolRequiredMixin, DeleteView):
-    roles_permitidos = [Usuario.Rol.JEFE]
+    roles_permitidos = [Usuario.Rol.ADMINISTRADOR]
     model = Credito
     template_name = "creditos/credito_confirm_delete.html"
     success_url = reverse_lazy("creditos:listado")

@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Revisar [docs/USUARIOS.md](./docs/USUARIOS.md) donde se explica los usuarios disponibles y el flujo de trabajo.
+
 ## Inicio Rápido (Setup Inicial)
 ```bash
 # 1. Instalar las librarias

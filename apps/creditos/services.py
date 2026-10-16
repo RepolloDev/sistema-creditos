@@ -111,19 +111,19 @@ def aprobar_solicitud_credito(
     solicitud = SolicitudCredito.objects.select_for_update().get(pk=solicitud_id)
     usuario = Usuario.objects.filter(pk=usuario_id).first() if usuario_id else None
 
-    # Validar RN03: Evaluación obligatoria y favorable
+    # Validar evaluación obligatoria y favorable
     if not hasattr(solicitud, "evaluacion"):
-        raise ValidationError("RN03: La solicitud no cuenta con una evaluación técnica registrada.")
+        raise ValidationError("La solicitud no cuenta con una evaluación técnica registrada.")
     if solicitud.evaluacion.resultado != "FAVORABLE":
-        raise ValidationError("RN03: No se puede aprobar una solicitud con dictamen DESFAVORABLE.")
+        raise ValidationError("No se puede aprobar una solicitud con dictamen desfavorable.")
 
     monto_final = _round(monto_aprobado if monto_aprobado is not None else solicitud.monto_solicitado)
     plazo_final = int(plazo_meses if plazo_meses is not None else solicitud.plazo_meses)
     tasa_final = _round(tasa_anual)
 
-    # Validar RN04: Límite de atribución por monto (Techo referencial para Jefe: 500,000 Bs.)
+    # Validar límite de atribución por monto (Techo referencial para Jefe: 500,000 Bs.)
     if monto_final > Decimal("500000.00") and (not usuario or not usuario.is_superuser):
-        raise ValidationError("RN04: El monto excede el límite de atribución autorizado (Bs. 500,000.00).")
+        raise ValidationError("El monto excede el límite de atribución autorizado (Bs. 500,000.00).")
 
     # Generar número de crédito único
     ultimo_id = (Credito.objects.order_by("-id").values_list("id", flat=True).first() or 0) + 1
@@ -171,7 +171,7 @@ def rechazar_solicitud_credito(
     """
     motivo = (motivo_rechazo or "").strip()
     if not motivo:
-        raise ValidationError("RN11: Debe registrar de forma obligatoria el motivo formal del rechazo.")
+        raise ValidationError("Debe registrar de forma obligatoria el motivo formal del rechazo.")
 
     solicitud = SolicitudCredito.objects.select_for_update().get(pk=solicitud_id)
     solicitud.estado = SolicitudCredito.Estado.RECHAZADA

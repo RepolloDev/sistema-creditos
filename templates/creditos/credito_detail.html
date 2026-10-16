@@ -9,21 +9,36 @@
   <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}" role="button">Cobrar Cuota</a>
   {% endif %}
 {% endif %}
-{% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
+{% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
 <a href="{% url 'creditos:eliminar' credito.pk %}" role="button" class="outline danger">Eliminar</a>
 {% endif %}
 <a href="{% url 'creditos:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
 {% block content %}
+<div class="stepper">
+  <div class="step completed">
+    <span class="step-num">1</span> Aprobado
+  </div>
+  <div class="step {% if contrato and contrato.estado == 'FIRMADO' %}completed{% elif contrato and contrato.estado == 'GENERADO' %}active{% endif %}">
+    <span class="step-num">2</span> Firma Contrato
+  </div>
+  <div class="step {% if credito.estado != 'APROBADO' %}completed{% elif contrato and contrato.estado == 'FIRMADO' %}active{% endif %}">
+    <span class="step-num">3</span> Desembolso
+  </div>
+  <div class="step {% if credito.estado == 'PAGADO' %}completed{% elif credito.estado == 'VIGENTE' or credito.estado == 'EN_MORA' %}active{% endif %}">
+    <span class="step-num">4</span> Cobranza
+  </div>
+</div>
+
 <div class="grid">
   <article>
     <header><strong>Datos del Crédito</strong></header>
-    <p><strong>Cliente:</strong> <a href="{% url 'clientes:detalle' credito.solicitud.cliente.pk %}">{{ credito.solicitud.cliente.nombres }} {{ credito.solicitud.cliente.apellidos }}</a> ({{ credito.solicitud.cliente.ci }})</p>
-    <p><strong>Monto Aprobado:</strong> Bs. {{ credito.monto_aprobado|floatformat:2 }} ({{ credito.tasa_interes }}% anual, {{ credito.plazo_meses }} meses)</p>
-    <p><strong>Saldo Capital:</strong> Bs. {{ credito.saldo_capital|floatformat:2 }} ({{ cuotas_pagadas }}/{{ total_cuotas }} cuotas pagadas)</p>
-    <p><strong>Estado:</strong> {{ credito.get_estado_display }}</p>
-    <p><strong>Contrato:</strong> {% if contrato %}{{ contrato.numero_contrato }} ({{ contrato.get_estado_display }}){% else %}—{% endif %}</p>
+    <p><strong>Cliente:</strong> <a href="{% url 'clientes:detalle' credito.solicitud.cliente.pk %}">{{ credito.solicitud.cliente.nombres }} {{ credito.solicitud.cliente.apellidos }}</a> (<span class="mono">{{ credito.solicitud.cliente.ci }}</span>)</p>
+    <p><strong>Monto Aprobado:</strong> <span class="mono">Bs. {{ credito.monto_aprobado|floatformat:2 }}</span> ({{ credito.tasa_interes }}% anual, {{ credito.plazo_meses }} meses)</p>
+    <p><strong>Saldo Capital:</strong> <span class="mono">Bs. {{ credito.saldo_capital|floatformat:2 }}</span> ({{ cuotas_pagadas }}/{{ total_cuotas }} cuotas pagadas)</p>
+    <p><strong>Estado:</strong> <span class="badge badge-{{ credito.estado|lower }}">{{ credito.get_estado_display }}</span></p>
+    <p><strong>Contrato:</strong> {% if contrato %}<span class="mono">{{ contrato.numero_contrato }}</span> <span class="badge badge-{{ contrato.estado|lower }}">{{ contrato.get_estado_display }}</span>{% else %}—{% endif %}</p>
   </article>
 
   {% if credito.estado == 'APROBADO' %}
@@ -69,12 +84,12 @@
     <tbody>
       {% for c in cuotas %}
       <tr>
-        <td>#{{ c.numero_cuota }}</td>
+        <td class="mono">#{{ c.numero_cuota }}</td>
         <td>{{ c.fecha_vencimiento|date:"d/m/Y" }}</td>
-        <td>Bs. {{ c.capital|floatformat:2 }}</td>
-        <td>Bs. {{ c.interes|floatformat:2 }}</td>
-        <td>Bs. {{ c.monto_cuota|floatformat:2 }}</td>
-        <td>{{ c.get_estado_display }}</td>
+        <td class="mono">Bs. {{ c.capital|floatformat:2 }}</td>
+        <td class="mono">Bs. {{ c.interes|floatformat:2 }}</td>
+        <td class="mono">Bs. {{ c.monto_cuota|floatformat:2 }}</td>
+        <td><span class="badge badge-{{ c.estado|lower }}">{{ c.get_estado_display }}</span></td>
         <td>
           {% if c.estado != 'PAGADA' and credito.estado != 'APROBADO' %}
             {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}

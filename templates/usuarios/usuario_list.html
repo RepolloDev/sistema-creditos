@@ -38,7 +38,7 @@
         <td><strong>{{ u.login }}</strong></td>
         <td>{{ u.nombre_completo }}</td>
         <td>{{ u.get_rol_display }}</td>
-        <td>{% if u.activo %}Activo{% else %}Inactivo{% endif %}</td>
+        <td>{% if u.activo %}<span class="badge badge-activo">Activo</span>{% else %}<span class="badge badge-inactivo">Inactivo</span>{% endif %}</td>
         <td>
           <div class="actions">
             <a href="{% url 'usuarios:usuario_update' u.pk %}" role="button" class="outline">Editar</a>

@@ -58,17 +58,17 @@
     <tbody>
       {% for ev in evaluaciones %}
       <tr>
-        <td>#{{ ev.id }}</td>
-        <td>Sol. #{{ ev.solicitud.id }} — {{ ev.solicitud.cliente.apellidos }}, {{ ev.solicitud.cliente.nombres }} ({{ ev.solicitud.cliente.ci }})</td>
-        <td>Bs. {{ ev.ingresos|floatformat:2 }}</td>
-        <td>Bs. {{ ev.gastos|floatformat:2 }}</td>
-        <td>Bs. {{ ev.capacidad_pago|floatformat:2 }}</td>
-        <td>{{ ev.get_nivel_riesgo_display }}</td>
-        <td>{{ ev.get_resultado_display }}</td>
+        <td class="mono">#{{ ev.id }}</td>
+        <td>Sol. <span class="mono">#{{ ev.solicitud.id }}</span> — {{ ev.solicitud.cliente.apellidos }}, {{ ev.solicitud.cliente.nombres }} (<span class="mono">{{ ev.solicitud.cliente.ci }}</span>)</td>
+        <td class="mono">Bs. {{ ev.ingresos|floatformat:2 }}</td>
+        <td class="mono">Bs. {{ ev.gastos|floatformat:2 }}</td>
+        <td class="mono">Bs. {{ ev.capacidad_pago|floatformat:2 }}</td>
+        <td><span class="badge">{{ ev.get_nivel_riesgo_display }}</span></td>
+        <td><span class="badge badge-{{ ev.resultado|lower }}">{{ ev.get_resultado_display }}</span></td>
         <td>
           <div class="actions">
             <a href="{% url 'evaluacion:detalle' ev.pk %}" role="button" class="outline">Ver</a>
-            {% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
+            {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
             <a href="{% url 'evaluacion:eliminar' ev.pk %}" role="button" class="outline danger">Eliminar</a>
             {% endif %}
           </div>

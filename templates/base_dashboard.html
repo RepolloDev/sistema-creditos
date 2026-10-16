@@ -12,6 +12,7 @@
           <li><a href="{% url 'dashboard' %}" {% if request.path == '/' or request.path == '/usuarios/dashboard/' %}aria-current="page"{% endif %}>Inicio</a></li>
 
           {% if request.user.rol in "ADMINISTRADOR,OFICIAL,ANALISTA,JEFE,CAJERO,GERENTE" or request.user.is_superuser %}
+          <li class="menu-group-title">Originación</li>
           <li><a href="{% url 'clientes:listado' %}" {% if '/clientes/' in request.path %}aria-current="page"{% endif %}>Clientes</a></li>
           {% endif %}
 
@@ -24,6 +25,7 @@
           {% endif %}
 
           {% if request.user.rol in "ADMINISTRADOR,JEFE,GERENTE,OFICIAL,ANALISTA,CAJERO" or request.user.is_superuser %}
+          <li class="menu-group-title">Cartera y Cobranza</li>
           <li><a href="{% url 'creditos:listado' %}" {% if '/creditos/' in request.path and '/creditos/reportes/' not in request.path %}aria-current="page"{% endif %}>Créditos</a></li>
           {% endif %}
 
@@ -36,6 +38,7 @@
           {% endif %}
 
           {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
+          <li class="menu-group-title">Sistema</li>
           <li><a href="{% url 'usuarios:usuario_list' %}" {% if '/usuarios/' in request.path and '/usuarios/dashboard/' not in request.path %}aria-current="page"{% endif %}>Usuarios y Auditoría</a></li>
           {% endif %}
         </ul>

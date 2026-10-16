@@ -84,10 +84,10 @@
       <tbody>
         {% for s in ultimas_solicitudes %}
         <tr>
-          <td>#{{ s.id }}</td>
+          <td class="mono">#{{ s.id }}</td>
           <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }}</td>
-          <td>Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
-          <td>{{ s.get_estado_display }}</td>
+          <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
+          <td><span class="badge badge-{{ s.estado|lower }}">{{ s.get_estado_display }}</span></td>
         </tr>
         {% empty %}
         <tr><td colspan="4">Sin solicitudes.</td></tr>
@@ -135,10 +135,10 @@
     <tbody>
       {% for s in ultimas_solicitudes %}
       <tr>
-        <td>#{{ s.id }}</td>
+        <td class="mono">#{{ s.id }}</td>
         <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }}</td>
-        <td>Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
-        <td>{{ s.get_estado_display }}</td>
+        <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
+        <td><span class="badge badge-{{ s.estado|lower }}">{{ s.get_estado_display }}</span></td>
       </tr>
       {% empty %}
       <tr><td colspan="4">Sin solicitudes.</td></tr>
