@@ -13,7 +13,7 @@ class Credito(models.Model):
 
     solicitud = models.OneToOneField(
         "solicitudes.SolicitudCredito",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="credito",
         verbose_name="Solicitud de Crédito",
     )

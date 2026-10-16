@@ -258,29 +258,7 @@ class ReportesView(LoginRequiredMixin, TemplateView):
 
 
 class CreditoDeleteView(LoginRequiredMixin, DeleteView):
-    """
-    Eliminación de crédito, contrato y cuotas para pruebas en MVP.
-    """
-
     model = Credito
     template_name = "creditos/credito_confirm_delete.html"
     success_url = reverse_lazy("creditos:listado")
 
-    def post(self, request, *args, **kwargs):
-        credito = self.get_object()
-        num = credito.numero_credito
-        c_id = credito.pk
-        sol = credito.solicitud
-        credito.delete()
-        if sol.estado == SolicitudCredito.Estado.APROBADA:
-            sol.estado = SolicitudCredito.Estado.EN_EVALUACION
-            sol.save(update_fields=["estado"])
-        Auditoria.objects.create(
-            usuario=request.user,
-            operacion="ELIMINAR_CREDITO",
-            entidad="CREDITO",
-            id_entidad=c_id,
-            resultado=Auditoria.Resultado.EXITOSO,
-        )
-        messages.success(request, f"Crédito {num} eliminado y solicitud retornada a EN_EVALUACION.")
-        return redirect(self.success_url)

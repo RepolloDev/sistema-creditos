@@ -116,25 +116,3 @@ class ClienteDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "clientes/cliente_confirm_delete.html"
     success_url = reverse_lazy("clientes:listado")
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        ci = self.object.ci
-        cliente_id = self.object.pk
-        try:
-            # En MVP, permitimos borrar sus solicitudes en cascada para facilitar pruebas
-            for sol in self.object.solicitudes.all():
-                if hasattr(sol, "credito"):
-                    sol.credito.delete()
-                sol.delete()
-            self.object.delete()
-            Auditoria.objects.create(
-                usuario=request.user,
-                operacion="ELIMINAR_CLIENTE",
-                entidad="CLIENTE",
-                id_entidad=cliente_id,
-                resultado=Auditoria.Resultado.EXITOSO,
-            )
-            messages.success(request, f"Cliente '{ci}' y sus registros asociados fueron eliminados.")
-        except ProtectedError:
-            messages.error(request, f"No se pudo eliminar el cliente '{ci}' por restricciones de integridad.")
-        return redirect(self.success_url)

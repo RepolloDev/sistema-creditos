@@ -199,20 +199,3 @@ class EvaluacionDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "evaluacion/evaluacion_confirm_delete.html"
     success_url = reverse_lazy("evaluacion:listado")
 
-    def post(self, request, *args, **kwargs):
-        ev = self.get_object()
-        ev_id = ev.pk
-        sol = ev.solicitud
-        ev.delete()
-        if sol.estado == SolicitudCredito.Estado.EN_EVALUACION:
-            sol.estado = SolicitudCredito.Estado.REGISTRADA
-            sol.save(update_fields=["estado"])
-        Auditoria.objects.create(
-            usuario=request.user,
-            operacion="ELIMINAR_EVALUACION",
-            entidad="EVALUACION_CREDITO",
-            id_entidad=ev_id,
-            resultado=Auditoria.Resultado.EXITOSO,
-        )
-        messages.success(request, f"Evaluación #{ev_id} eliminada y solicitud devuelta a estado REGISTRADA.")
-        return redirect(self.success_url)

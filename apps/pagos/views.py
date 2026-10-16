@@ -201,47 +201,7 @@ class ControlMoraView(LoginRequiredMixin, TemplateView):
 
 
 class PagoDeleteView(LoginRequiredMixin, DeleteView):
-    """
-    Anulación / eliminación de pago para reiniciar pruebas en MVP,
-    restaurando el saldo de la cuota y del crédito.
-    """
-
     model = Pago
     template_name = "pagos/pago_confirm_delete.html"
     success_url = reverse_lazy("pagos:listado")
 
-    def post(self, request, *args, **kwargs):
-        pago = self.get_object()
-        recibo = pago.numero_recibo
-        p_id = pago.pk
-        cuota = pago.cuota
-        credito = cuota.credito
-
-        # Revertir saldos
-        cuota.saldo_cuota = min(cuota.monto_cuota, cuota.saldo_cuota + pago.monto)
-        if cuota.fecha_vencimiento < date.today():
-            cuota.estado = Cuota.Estado.VENCIDA
-        else:
-            cuota.estado = Cuota.Estado.PENDIENTE
-        cuota.save(update_fields=["saldo_cuota", "estado"])
-
-        credito.saldo_capital = min(credito.monto_aprobado, credito.saldo_capital + pago.monto)
-        if credito.cuotas.filter(estado=Cuota.Estado.VENCIDA).exists():
-            credito.estado = Credito.Estado.EN_MORA
-        else:
-            credito.estado = Credito.Estado.VIGENTE
-        credito.save(update_fields=["saldo_capital", "estado"])
-
-        pago.delete()
-        Auditoria.objects.create(
-            usuario=request.user,
-            operacion="ANULAR_PAGO",
-            entidad="PAGO",
-            id_entidad=p_id,
-            resultado=Auditoria.Resultado.EXITOSO,
-        )
-        messages.success(
-            request,
-            f"Recibo #{recibo} anulado y saldos de Cuota #{cuota.numero_cuota} restaurados.",
-        )
-        return redirect(self.success_url)

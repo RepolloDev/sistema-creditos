@@ -13,7 +13,7 @@ class SolicitudCredito(models.Model):
 
     cliente = models.ForeignKey(
         "clientes.Cliente",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="solicitudes",
         verbose_name="Cliente",
     )

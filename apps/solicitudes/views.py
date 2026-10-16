@@ -156,49 +156,14 @@ class GarantiaCreateView(LoginRequiredMixin, CreateView):
 
 
 class SolicitudDeleteView(LoginRequiredMixin, DeleteView):
-    """
-    Eliminación de solicitud de crédito para reiniciar pruebas en MVP.
-    """
-
     model = SolicitudCredito
     template_name = "solicitudes/solicitud_confirm_delete.html"
     success_url = reverse_lazy("solicitudes:listado")
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        sol_id = self.object.pk
-        if hasattr(self.object, "credito"):
-            self.object.credito.delete()
-        self.object.delete()
-        Auditoria.objects.create(
-            usuario=request.user,
-            operacion="ELIMINAR_SOLICITUD",
-            entidad="SOLICITUD_CREDITO",
-            id_entidad=sol_id,
-            resultado=Auditoria.Resultado.EXITOSO,
-        )
-        messages.success(request, f"Solicitud #{sol_id} eliminada correctamente.")
-        return redirect(self.success_url)
-
 
 class GarantiaDeleteView(LoginRequiredMixin, DeleteView):
-    """
-    Eliminación de garantía individual asociada a una solicitud.
-    """
-
     model = Garantia
 
-    def post(self, request, *args, **kwargs):
-        garantia = self.get_object()
-        sol_pk = garantia.solicitud_id
-        g_id = garantia.pk
-        garantia.delete()
-        Auditoria.objects.create(
-            usuario=request.user,
-            operacion="ELIMINAR_GARANTIA",
-            entidad="GARANTIA",
-            id_entidad=g_id,
-            resultado=Auditoria.Resultado.EXITOSO,
-        )
-        messages.success(request, f"Garantía #{g_id} desvinculada de la Solicitud #{sol_pk}.")
-        return redirect("solicitudes:detalle", pk=sol_pk)
+    def get_success_url(self):
+        return reverse_lazy("solicitudes:detalle", kwargs={"pk": self.object.solicitud_id})
+

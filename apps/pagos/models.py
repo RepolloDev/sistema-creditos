@@ -11,7 +11,7 @@ class Pago(models.Model):
 
     cuota = models.ForeignKey(
         "creditos.Cuota",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="pagos",
         verbose_name="Cuota",
     )

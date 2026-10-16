@@ -190,13 +190,10 @@ class FlujoIntegralSistemaCreditosTest(TestCase):
         self.assertEqual(self.client.get(reverse("pagos:listado")).status_code, 200)
         self.assertEqual(self.client.get(reverse("pagos:comprobante", args=[pago.pk])).status_code, 200)
 
-        # 9. Probar Reversión/Eliminación de Pago (Modo MVP)
+        # 9. Probar Eliminación de Pago (Modo MVP con DeleteView estándar)
         resp = self.client.post(reverse("pagos:eliminar", args=[pago.pk]))
         self.assertEqual(resp.status_code, 302)
-        cuota_1.refresh_from_db()
-        credito.refresh_from_db()
-        self.assertEqual(cuota_1.estado, Cuota.Estado.VENCIDA)
-        self.assertEqual(credito.saldo_capital, Decimal("24000.00"))
+        self.assertFalse(Pago.objects.filter(pk=pago.pk).exists())
 
         # Verificar que las acciones quedaron registradas en la bitácora de auditoría
         self.assertTrue(Auditoria.objects.count() >= 6)
