@@ -1,19 +1,15 @@
 ## Inicio Rápido (Setup Inicial)
-## holas como estas 
 ```bash
-# 1. Configurar variables de entorno
-cp .env.example .env
-
-# 2. Instalar dependencias
+# 1. Instalar las librarias
 uv sync
 
-# 3. Aplicar migraciones a la base de datos (SQLite)
+# 2. Aplicar las migraciones (crear la base de datos)
 uv run task migrate
 
-# 4. Crear usuario administrador (opcional)
-uv run python manage.py createsuperuser
+# 3. Crear los datos de prueba
+uv run task seed
 
-# 5. Iniciar servidor de desarrollo
+# 4. Iniciar el servidor de desarrollo
 uv run task dev
 ```
 
