@@ -1,6 +1,6 @@
 ## Inicio Rápido (Setup Inicial)
 
--- Holaa ^^ (romel)
+-- Holaa ^^ (romel)fasdlfjadsf
 
 ```bash
 # 1. Configurar variables de entorno
