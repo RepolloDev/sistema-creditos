@@ -1,0 +1,95 @@
+name: Release Executables (Windows & Linux)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: sis-creditos-linux
+            binary_path: dist/sis-creditos
+          - os: windows-latest
+            artifact_name: sis-creditos-windows.exe
+            binary_path: dist/sis-creditos.exe
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen
+
+      - name: Collect static files
+        run: |
+          uv run python manage.py collectstatic --noinput
+
+      - name: Seed initial database if missing
+        run: |
+          uv run python manage.py migrate --noinput
+          uv run python database/seed.py
+
+      - name: Build with PyInstaller
+        run: |
+          uv run pyinstaller --clean -y sis_creditos.spec
+
+      - name: Rename binary for release (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mv dist/sis-creditos dist/sis-creditos-linux
+
+      - name: Rename binary for release (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mv dist/sis-creditos.exe dist/sis-creditos-windows.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.artifact_name }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_assets
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release_assets/sis-creditos-linux
+            release_assets/sis-creditos-windows.exe
+          generate_release_notes: true
+          draft: false
+          prerelease: false
