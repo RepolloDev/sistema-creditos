@@ -26,7 +26,16 @@ DB_SOURCE = BUNDLE_DIR / "database" / "db.sqlite3"
 if not DB_TARGET.exists() and DB_SOURCE.exists():
     shutil.copyfile(DB_SOURCE, DB_TARGET)
 
-# Configurar Django
+# En Windows con console=False, sys.stdout y sys.stderr son None.
+# Django call_command("migrate") intenta escribir a stdout y revienta.
+import io
+
+if sys.stdout is None:
+    sys.stdout = io.StringIO()
+if sys.stderr is None:
+    sys.stderr = io.StringIO()
+
+# Variables de entorno
 os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings"
 os.environ["SQLITE_DB_PATH"] = str(DB_TARGET)
 os.environ["DEBUG"] = "False"
@@ -38,8 +47,12 @@ import django
 django.setup()
 
 from django.core.management import call_command
-# Aplicar migraciones pendientes
-call_command("migrate", interactive=False)
+# Aplicar migraciones pendientes redirigiendo salida
+null_out = io.StringIO()
+try:
+    call_command("migrate", interactive=False, verbosity=0, stdout=null_out, stderr=null_out)
+except Exception:
+    pass
 
 from config.wsgi import application
 from waitress.server import create_server
