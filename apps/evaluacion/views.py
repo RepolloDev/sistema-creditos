@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -56,17 +57,12 @@ class EvaluacionListView(RolRequiredMixin, ListView):
         context["selected_resultado"] = self.request.GET.get("resultado", "")
         context["niveles_riesgo"] = EvaluacionCredito.NivelRiesgo.choices
         context["resultados"] = EvaluacionCredito.Resultado.choices
-        context["solicitudes_sin_evaluar"] = (
-            SolicitudCredito.objects.filter(evaluacion__isnull=True, estado="REGISTRADA")
-            .select_related("cliente")
-            .order_by("-fecha_solicitud")[:10]
-        )
         return context
 
 
 class EvaluacionDetailView(RolRequiredMixin, DetailView):
     """
-    Detalle de dictamen técnico, scoring del buró y capacidad de pago (CU03 / CU04 / CU05).
+    Detalle de dictamen técnico, scoring del buró y capacidad de pago.
     """
 
     roles_permitidos = [Usuario.Rol.ANALISTA, Usuario.Rol.JEFE, Usuario.Rol.GERENTE]
@@ -98,7 +94,7 @@ class EvaluacionDetailView(RolRequiredMixin, DetailView):
 
 class EvaluacionCreateView(RolRequiredMixin, CreateView):
     """
-    CU04 / CU05 / RF05 / RF06: Registro o actualización de evaluación técnica (Actor: Analista).
+    Registro o actualización de evaluación técnica (Actor: Analista).
     """
 
     roles_permitidos = [Usuario.Rol.ANALISTA]
@@ -113,8 +109,32 @@ class EvaluacionCreateView(RolRequiredMixin, CreateView):
             or self.request.POST.get("solicitud")
         )
         if sol_id:
-            return SolicitudCredito.objects.select_related("cliente").filter(pk=sol_id).first()
+            try:
+                return (
+                    SolicitudCredito.objects.select_related("cliente")
+                    .prefetch_related("garantias")
+                    .filter(
+                        pk=int(sol_id),
+                        estado=SolicitudCredito.Estado.REGISTRADA,
+                        evaluacion__isnull=True,
+                    )
+                    .first()
+                )
+            except (ValueError, TypeError):
+                return None
         return None
+
+    def get(self, request, *args, **kwargs):
+        sol_id = request.GET.get("solicitud") or request.GET.get("solicitud_id")
+        if sol_id:
+            sol = self.get_solicitud_preseleccionada()
+            if not sol:
+                messages.warning(
+                    request,
+                    "La solicitud no existe, ya fue evaluada o no se encuentra en estado REGISTRADA.",
+                )
+                return redirect("evaluacion:crear")
+        return super().get(request, *args, **kwargs)
 
     def get_initial(self):
         initial = super().get_initial()
@@ -132,6 +152,11 @@ class EvaluacionCreateView(RolRequiredMixin, CreateView):
             initial["gastos"] = gastos_sugeridos
             initial["capacidad_pago"] = sol.cliente.ingresos_mensuales - gastos_sugeridos
             initial["observaciones"] = buro["observaciones"]
+            initial["resultado"] = (
+                EvaluacionCredito.Resultado.FAVORABLE
+                if buro.get("es_favorable", True)
+                else EvaluacionCredito.Resultado.DESFAVORABLE
+            )
         return initial
 
     def get_context_data(self, **kwargs):
@@ -162,25 +187,45 @@ class EvaluacionCreateView(RolRequiredMixin, CreateView):
             messages.error(request, "Debe seleccionar una solicitud válida para evaluar.")
             return redirect("evaluacion:crear")
 
-        evaluacion = registrar_dictamen_evaluacion(
-            solicitud_id=int(sol_id),
-            ingresos=ingresos,
-            gastos=gastos,
-            nivel_riesgo=nivel_riesgo,
-            resultado=resultado,
-            observaciones=observaciones,
-            usuario=request.user,
+        solicitud = (
+            SolicitudCredito.objects.filter(
+                pk=int(sol_id),
+                estado=SolicitudCredito.Estado.REGISTRADA,
+                evaluacion__isnull=True,
+            )
+            .first()
         )
-        messages.success(
-            request,
-            f"Dictamen técnico ({evaluacion.get_resultado_display()}) registrado para Solicitud #{sol_id}.",
-        )
-        return redirect("evaluacion:detalle", pk=evaluacion.pk)
+        if not solicitud:
+            messages.error(
+                request,
+                "Solo se pueden evaluar solicitudes en estado REGISTRADA que no tengan evaluación previa.",
+            )
+            return redirect("evaluacion:crear")
+
+        try:
+            evaluacion = registrar_dictamen_evaluacion(
+                solicitud_id=int(sol_id),
+                ingresos=ingresos,
+                gastos=gastos,
+                nivel_riesgo=nivel_riesgo,
+                resultado=resultado,
+                observaciones=observaciones,
+                usuario=request.user,
+            )
+            messages.success(
+                request,
+                f"Dictamen técnico ({evaluacion.get_resultado_display()}) registrado para Solicitud #{sol_id}.",
+            )
+            return redirect("evaluacion:detalle", pk=evaluacion.pk)
+        except ValidationError as e:
+            msg = e.messages[0] if hasattr(e, "messages") else str(e)
+            messages.error(request, msg)
+            return redirect(f"{reverse_lazy('evaluacion:crear')}?solicitud_id={sol_id}")
 
 
 class ConsultarRiesgoExternoView(RolRequiredMixin, View):
     """
-    CU03 / RF04: Consulta interactiva al buró externo para una evaluación (Actor: Analista).
+    Consulta interactiva al buró externo para una evaluación (Actor: Analista).
     """
 
     roles_permitidos = [Usuario.Rol.ANALISTA]

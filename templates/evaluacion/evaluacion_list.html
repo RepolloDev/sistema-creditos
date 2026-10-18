@@ -9,19 +9,6 @@
 {% endblock %}
 
 {% block content %}
-{% if solicitudes_sin_evaluar and request.user.rol in "ADMINISTRADOR,ANALISTA" or solicitudes_sin_evaluar and request.user.is_superuser %}
-<article>
-  <header><strong>Solicitudes Pendientes de Evaluación ({{ solicitudes_sin_evaluar|length }})</strong></header>
-  <div class="actions">
-    {% for s in solicitudes_sin_evaluar %}
-    <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" role="button" class="outline">
-      Evaluar #{{ s.id }} — {{ s.cliente.apellidos }} (Bs. {{ s.monto_solicitado|floatformat:0 }})
-    </a>
-    {% endfor %}
-  </div>
-</article>
-{% endif %}
-
 <form method="get">
   <div class="grid">
     <input type="search" name="q" value="{{ q }}" placeholder="Buscar por C.I. o apellido...">

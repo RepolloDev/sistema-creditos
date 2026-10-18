@@ -30,27 +30,54 @@
     </form>
   </article>
 
-  {% if solicitud_preseleccionada or buro %}
   <article>
-    <header><strong>Antecedentes y Central de Riesgos</strong></header>
+    <header><strong>Expediente, Garantías y Central de Riesgos</strong></header>
     {% if solicitud_preseleccionada %}
       <p><strong>Cliente:</strong> {{ solicitud_preseleccionada.cliente.nombres }} {{ solicitud_preseleccionada.cliente.apellidos }} ({{ solicitud_preseleccionada.cliente.ci }})</p>
       <p><strong>Monto Solicitado:</strong> Bs. {{ solicitud_preseleccionada.monto_solicitado|floatformat:2 }} ({{ solicitud_preseleccionada.plazo_meses }} meses)</p>
       <p><strong>Cuota Estimada:</strong> Bs. {{ cuota_estimada|floatformat:2 }}</p>
+
+      <hr>
+      <p style="margin-bottom: 0.5rem;"><strong>Garantías Registradas:</strong></p>
+      {% if solicitud_preseleccionada.garantias.all %}
+        <ul>
+          {% for g in solicitud_preseleccionada.garantias.all %}
+            <li>
+              <strong>{{ g.get_tipo_display }}:</strong> {{ g.descripcion }}
+              <br><small>Valor estimado: <strong>Bs. {{ g.valor|floatformat:2 }}</strong></small>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p><small><em>Sin garantías registradas en esta solicitud.</em></small></p>
+      {% endif %}
       <hr>
     {% endif %}
     {% if buro %}
+      <p style="margin-bottom: 0.5rem;"><strong>Central de Riesgos:</strong></p>
       <p><strong>Score:</strong> {{ buro.score }} / 850 (Riesgo {{ buro.nivel_riesgo }})</p>
       <p><strong>Deuda Externa:</strong> Bs. {{ buro.deuda_vigente|floatformat:2 }}</p>
       <p><strong>Mora Activa:</strong> {% if buro.tiene_mora %}Sí{% else %}No{% endif %}</p>
       <p><small>{{ buro.observaciones }}</small></p>
+    {% else %}
+      <p><small>Seleccione una solicitud para precargar antecedentes crediticios, garantías y consulta en central de riesgos.</small></p>
     {% endif %}
   </article>
-  {% endif %}
 </div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
+    const sol = document.getElementById("id_solicitud");
+    if (sol) {
+      sol.addEventListener("change", function() {
+        if (this.value) {
+          window.location.href = "{% url 'evaluacion:crear' %}?solicitud_id=" + encodeURIComponent(this.value);
+        } else {
+          window.location.href = "{% url 'evaluacion:crear' %}";
+        }
+      });
+    }
+
     const ing = document.getElementById("id_ingresos");
     const gas = document.getElementById("id_gastos");
     const cap = document.getElementById("id_capacidad_pago");

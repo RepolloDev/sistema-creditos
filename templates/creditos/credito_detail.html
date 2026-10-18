@@ -4,6 +4,9 @@
 
 {% block actions %}
 <a href="{% url 'creditos:cronograma' credito.pk %}" role="button" class="outline">Cronograma</a>
+{% if contrato %}
+<a href="{% url 'creditos:contrato' credito.pk %}" role="button" class="outline" target="_blank">Imprimir Contrato</a>
+{% endif %}
 {% if credito.estado == 'VIGENTE' or credito.estado == 'EN_MORA' %}
   {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
   <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}" role="button">Cobrar Cuota</a>
@@ -38,13 +41,30 @@
     <p><strong>Monto Aprobado:</strong> <span class="mono">Bs. {{ credito.monto_aprobado|floatformat:2 }}</span> ({{ credito.tasa_interes }}% anual, {{ credito.plazo_meses }} meses)</p>
     <p><strong>Saldo Capital:</strong> <span class="mono">Bs. {{ credito.saldo_capital|floatformat:2 }}</span> ({{ cuotas_pagadas }}/{{ total_cuotas }} cuotas pagadas)</p>
     <p><strong>Estado:</strong> <span class="badge badge-{{ credito.estado|lower }}">{{ credito.get_estado_display }}</span></p>
-    <p><strong>Contrato:</strong> {% if contrato %}<span class="mono">{{ contrato.numero_contrato }}</span> <span class="badge badge-{{ contrato.estado|lower }}">{{ contrato.get_estado_display }}</span>{% else %}—{% endif %}</p>
+    <p>
+      <strong>Contrato:</strong>
+      {% if contrato %}
+        <span class="mono">{{ contrato.numero_contrato }}</span>
+        <span class="badge badge-{{ contrato.estado|lower }}">{{ contrato.get_estado_display }}</span>
+        <a href="{% url 'creditos:contrato' credito.pk %}" target="_blank" style="margin-left: 0.5rem; font-size: 0.85rem;">[Ver / Imprimir]</a>
+      {% else %}
+        —
+      {% endif %}
+    </p>
   </article>
 
   {% if credito.estado == 'APROBADO' %}
     {% if request.user.rol in "ADMINISTRADOR,OFICIAL,JEFE" or request.user.is_superuser %}
     <article>
       <header><strong>Formalización y Desembolso</strong></header>
+      {% if contrato %}
+      <div style="margin-bottom: 1rem;">
+        <p style="margin-bottom: 0.4rem;"><small>Genere el documento físico para revisión y suscripción del cliente:</small></p>
+        <a href="{% url 'creditos:contrato' credito.pk %}" target="_blank" role="button" class="outline" style="width: 100%; text-align: center; display: inline-block;">
+          Imprimir Contrato ({{ contrato.numero_contrato }})
+        </a>
+      </div>
+      {% endif %}
       {% if contrato and contrato.estado == 'GENERADO' %}
       <form method="post" action="{% url 'creditos:firmar_contrato' credito.pk %}">
         {% csrf_token %}

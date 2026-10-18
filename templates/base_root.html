@@ -74,6 +74,11 @@
       --pico-form-element-spacing-horizontal: 0.6rem;
       --pico-block-spacing-vertical: 1rem;
       --pico-block-spacing-horizontal: 1rem;
+
+      /* Readonly Form Controls */
+      --app-readonly-bg: #f3f4f6;
+      --app-readonly-border: #d1d5db;
+      --app-readonly-color: #4b5563;
     }
 
     body { margin: 0; background: #ffffff; color: #111111; }
@@ -347,6 +352,31 @@
       margin-top: 0.25rem;
     }
 
+    /* Global Readonly & Disabled Form Controls */
+    input:read-only,
+    input[readonly],
+    textarea:read-only,
+    textarea[readonly],
+    select:disabled,
+    select[disabled],
+    input:disabled,
+    input[disabled] {
+      background-color: var(--app-readonly-bg, #f3f4f6) !important;
+      color: var(--app-readonly-color, #4b5563) !important;
+      border: 1px solid var(--app-readonly-border, #d1d5db) !important;
+      cursor: not-allowed;
+      box-shadow: none !important;
+    }
+    input:read-only:focus,
+    input[readonly]:focus,
+    textarea:read-only:focus,
+    textarea[readonly]:focus {
+      background-color: var(--app-readonly-bg, #f3f4f6) !important;
+      border-color: #9ca3af !important;
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
     /* Message / Alert Boxes */
     article.alert {
       margin-bottom: 1rem;
@@ -377,6 +407,35 @@
       background-color: #dbeafe;
       border: 1px solid #2563eb;
       color: #1e40af;
+    }
+
+    /* Print Styles */
+    @media print {
+      .sidebar,
+      .actions,
+      .no-print,
+      header.page-header,
+      nav {
+        display: none !important;
+      }
+      .layout {
+        display: block !important;
+      }
+      .main {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      article {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
     }
   </style>
 </head>

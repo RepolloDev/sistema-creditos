@@ -111,7 +111,11 @@ def aprobar_solicitud_credito(
     solicitud = SolicitudCredito.objects.select_for_update().get(pk=solicitud_id)
     usuario = Usuario.objects.filter(pk=usuario_id).first() if usuario_id else None
 
-    # Validar evaluación obligatoria y favorable
+    # Validar estado En Evaluación y evaluación técnica favorable obligatoria
+    if solicitud.estado != SolicitudCredito.Estado.EN_EVALUACION:
+        raise ValidationError(
+            f"Solo se pueden aprobar solicitudes en estado EN_EVALUACION. Estado actual: {solicitud.get_estado_display()}."
+        )
     if not hasattr(solicitud, "evaluacion"):
         raise ValidationError("La solicitud no cuenta con una evaluación técnica registrada.")
     if solicitud.evaluacion.resultado != "FAVORABLE":
@@ -168,12 +172,20 @@ def rechazar_solicitud_credito(
 ) -> SolicitudCredito:
     """
     CU08 / RF09 / RN11: Rechaza la solicitud registrando obligatoriamente el motivo formal.
+    Requiere previa evaluación del analista (estado EN_EVALUACION).
     """
     motivo = (motivo_rechazo or "").strip()
     if not motivo:
         raise ValidationError("Debe registrar de forma obligatoria el motivo formal del rechazo.")
 
     solicitud = SolicitudCredito.objects.select_for_update().get(pk=solicitud_id)
+    if solicitud.estado != SolicitudCredito.Estado.EN_EVALUACION:
+        raise ValidationError(
+            f"Solo se pueden rechazar solicitudes revisadas por el analista (estado EN_EVALUACION). Estado actual: {solicitud.get_estado_display()}."
+        )
+    if not hasattr(solicitud, "evaluacion"):
+        raise ValidationError("La solicitud no cuenta con una evaluación técnica previa del analista.")
+
     solicitud.estado = SolicitudCredito.Estado.RECHAZADA
     solicitud.motivo_rechazo = motivo
     solicitud.save(update_fields=["estado", "motivo_rechazo"])

@@ -611,28 +611,66 @@ def seed_solicitudes_y_prestamos(clientes):
 
         total_prestamos += 1
 
-    # Generar 5 solicitudes adicionales en estado EN_EVALUACION
+    # 9. Generar 5 solicitudes en estado REGISTRADA (Listas para ser evaluadas por el Analista)
     for i in range(1, 6):
-        cliente = clientes[i]
-        sol, _ = SolicitudCredito.objects.get_or_create(
+        cliente = clientes[i + 7]
+        monto_reg = Decimal(20000 + i * 5000)
+        sol = SolicitudCredito.objects.create(
             cliente=cliente,
-            destino=f"Trámite en evaluación técnica #{i}",
-            defaults={
-                "monto_solicitado": Decimal(random.choice([20000, 30000, 45000])),
-                "plazo_meses": 12,
-                "estado": SolicitudCredito.Estado.EN_EVALUACION,
-            },
+            destino=f"Trámite nuevo pendiente de evaluación #{i}",
+            monto_solicitado=monto_reg,
+            plazo_meses=12 + (i % 3) * 6,
+            estado=SolicitudCredito.Estado.REGISTRADA,
         )
-        Garantia.objects.get_or_create(
+        Garantia.objects.create(
             solicitud=sol,
-            defaults={
-                "tipo": Garantia.Tipo.PERSONAL,
-                "descripcion": "Garante personal en verificación laboral",
-                "valor": Decimal("35000.00"),
-            },
+            tipo=Garantia.Tipo.PERSONAL,
+            descripcion=f"Garante personal con boleta de pago y verificación laboral (Solicitud #{sol.id})",
+            valor=round_cur(monto_reg * Decimal("1.25")),
+            estado=Garantia.Estado.REGISTRADA,
         )
 
-    # Generar 5 solicitudes rechazadas con motivo (RN11)
+    # 10. Generar 5 solicitudes en estado EN_EVALUACION (Con dictamen técnico emitido, listas para decisión del Jefe)
+    resultados_eval = [
+        (EvaluacionCredito.Resultado.FAVORABLE, EvaluacionCredito.NivelRiesgo.BAJO, "Capacidad de pago suficiente y margen crediticio verificado."),
+        (EvaluacionCredito.Resultado.FAVORABLE, EvaluacionCredito.NivelRiesgo.MEDIO, "Margen admisible dentro del factor prudencial del 40%."),
+        (EvaluacionCredito.Resultado.FAVORABLE, EvaluacionCredito.NivelRiesgo.BAJO, "Flujo de ingresos verificado satisfactoriamente."),
+        (EvaluacionCredito.Resultado.DESFAVORABLE, EvaluacionCredito.NivelRiesgo.ALTO, "Capacidad de pago ajustada y cuota supera el límite prudencial."),
+        (EvaluacionCredito.Resultado.DESFAVORABLE, EvaluacionCredito.NivelRiesgo.ALTO, "Historial con antecedentes de mora activa en buró externo."),
+    ]
+    for i in range(1, 6):
+        cliente = clientes[i]
+        res_dictamen, nivel_r, obs_eva = resultados_eval[i - 1]
+        monto_eval = Decimal(15000 + i * 5000)
+        sol = SolicitudCredito.objects.create(
+            cliente=cliente,
+            destino=f"Trámite en evaluación técnica #{i}",
+            monto_solicitado=monto_eval,
+            plazo_meses=12,
+            estado=SolicitudCredito.Estado.EN_EVALUACION,
+        )
+        Garantia.objects.create(
+            solicitud=sol,
+            tipo=Garantia.Tipo.PERSONAL,
+            descripcion="Garante personal en verificación laboral",
+            valor=Decimal("35000.00"),
+            estado=Garantia.Estado.REGISTRADA,
+        )
+        ingresos_cli = cliente.ingresos_mensuales
+        factor_gasto = Decimal("0.35") if res_dictamen == EvaluacionCredito.Resultado.FAVORABLE else Decimal("0.75")
+        gastos_cli = round_cur(ingresos_cli * factor_gasto)
+        cap_pago = round_cur(ingresos_cli - gastos_cli)
+        EvaluacionCredito.objects.create(
+            solicitud=sol,
+            ingresos=ingresos_cli,
+            gastos=gastos_cli,
+            capacidad_pago=cap_pago,
+            nivel_riesgo=nivel_r,
+            resultado=res_dictamen,
+            observaciones=obs_eva,
+        )
+
+    # 11. Generar 5 solicitudes rechazadas con motivo formal y evaluación previa (RN11)
     motivos_rechazo = [
         "Nivel de endeudamiento vigente excede el 40% admisible.",
         "Antecedentes crediticios con mora recurrente en buró externo.",
@@ -642,25 +680,55 @@ def seed_solicitudes_y_prestamos(clientes):
     ]
     for i in range(1, 6):
         cliente = clientes[-i]
-        SolicitudCredito.objects.get_or_create(
+        sol = SolicitudCredito.objects.create(
             cliente=cliente,
             destino=f"Trámite denegado de prueba #{i}",
-            defaults={
-                "monto_solicitado": Decimal(random.choice([60000, 80000, 120000])),
-                "plazo_meses": 24,
-                "estado": SolicitudCredito.Estado.RECHAZADA,
-                "motivo_rechazo": motivos_rechazo[i - 1],
-            },
+            monto_solicitado=Decimal(60000 + i * 10000),
+            plazo_meses=24,
+            estado=SolicitudCredito.Estado.RECHAZADA,
+            motivo_rechazo=motivos_rechazo[i - 1],
+        )
+        Garantia.objects.create(
+            solicitud=sol,
+            tipo=Garantia.Tipo.PRENDARIA,
+            descripcion="Garantía prendaria con depreciación acelerada",
+            valor=Decimal("40000.00"),
+            estado=Garantia.Estado.REGISTRADA,
+        )
+        ingresos_cli = cliente.ingresos_mensuales
+        gastos_cli = round_cur(ingresos_cli * Decimal("0.85"))
+        EvaluacionCredito.objects.create(
+            solicitud=sol,
+            ingresos=ingresos_cli,
+            gastos=gastos_cli,
+            capacidad_pago=round_cur(ingresos_cli - gastos_cli),
+            nivel_riesgo=EvaluacionCredito.NivelRiesgo.ALTO,
+            resultado=EvaluacionCredito.Resultado.DESFAVORABLE,
+            observaciones=motivos_rechazo[i - 1],
         )
 
     print(f"  -> Préstamos creados y configurados: {total_prestamos}")
-    print("  -> Solicitudes adicionales en evaluación y rechazadas listas.")
+    print("  -> Solicitudes: 5 Registradas (nuevas para Analista), 5 En Evaluación (con dictamen para Jefe), 5 Rechazadas (con motivo).")
+
+
+def limpiar_datos_transaccionales():
+    print("--- [0/5] Limpiando datos transaccionales para regeneración consistente ---")
+    Pago.objects.all().delete()
+    Cuota.objects.all().delete()
+    Contrato.objects.all().delete()
+    Credito.objects.all().delete()
+    EvaluacionCredito.objects.all().delete()
+    Garantia.objects.all().delete()
+    SolicitudCredito.objects.all().delete()
+    TransaccionCoreBancario.objects.all().delete()
+    print("  -> Tablas transaccionales limpiadas correctamente.")
 
 
 def seed_all():
     print("======================================================")
     print("  INICIANDO SEED DE BASE DE DATOS - SISTEMA DE CRÉDITOS")
     print("======================================================")
+    limpiar_datos_transaccionales()
     seed_usuarios()
     clientes = seed_clientes()
     seed_solicitudes_y_prestamos(clientes)

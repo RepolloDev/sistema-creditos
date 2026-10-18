@@ -7,14 +7,16 @@
 <a href="{% url 'solicitudes:garantia_crear' solicitud.pk %}" role="button" class="outline">+ Garantía</a>
 {% endif %}
 {% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
-  {% if not evaluacion %}
+  {% if not evaluacion and solicitud.estado == 'REGISTRADA' %}
   <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ solicitud.pk }}" role="button">Evaluar</a>
   {% endif %}
 {% endif %}
 {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
-  {% if solicitud.estado == 'EN_EVALUACION' or solicitud.estado == 'REGISTRADA' %}
-  <a href="{% url 'creditos:aprobar' solicitud.pk %}" role="button">Aprobar</a>
-  <a href="{% url 'creditos:rechazar' solicitud.pk %}" role="button" class="outline danger">Rechazar</a>
+  {% if solicitud.estado == 'EN_EVALUACION' %}
+    {% if evaluacion and evaluacion.resultado == 'FAVORABLE' %}
+    <a href="{% url 'creditos:aprobar' solicitud.pk %}" role="button">Aprobar</a>
+    {% endif %}
+    <a href="{% url 'creditos:rechazar' solicitud.pk %}" role="button" class="outline danger">Rechazar</a>
   {% endif %}
 {% endif %}
 {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}

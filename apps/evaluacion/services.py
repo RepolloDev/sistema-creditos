@@ -84,6 +84,13 @@ def registrar_dictamen_evaluacion(
     Actualiza el estado de la solicitud a EN_EVALUACION.
     """
     solicitud = SolicitudCredito.objects.select_for_update().get(pk=solicitud_id)
+    if solicitud.estado != SolicitudCredito.Estado.REGISTRADA:
+        raise ValidationError(
+            f"Solo se pueden evaluar solicitudes en estado REGISTRADA. Estado actual: {solicitud.get_estado_display()}."
+        )
+    if hasattr(solicitud, "evaluacion"):
+        raise ValidationError("Esta solicitud ya cuenta con una evaluación técnica registrada.")
+
     calculo = calcular_capacidad_pago(ingresos, gastos)
     capacidad_pago = calculo["capacidad_disponible"]
 

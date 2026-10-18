@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models import Q, Sum
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import DeleteView, DetailView, FormView, ListView, TemplateView, View
 
@@ -113,6 +113,18 @@ class AprobarCreditoView(RolRequiredMixin, FormView):
             SolicitudCredito.objects.select_related("cliente", "evaluacion"),
             pk=self.kwargs["solicitud_id"],
         )
+        if self.solicitud.estado != SolicitudCredito.Estado.EN_EVALUACION:
+            messages.warning(
+                request,
+                f"La solicitud #{self.solicitud.pk} no puede aprobarse porque no está en estado En Evaluación.",
+            )
+            return redirect("solicitudes:detalle", pk=self.solicitud.pk)
+        if not hasattr(self.solicitud, "evaluacion") or self.solicitud.evaluacion.resultado != "FAVORABLE":
+            messages.error(
+                request,
+                "No se puede aprobar una solicitud sin evaluación técnica previa o con dictamen desfavorable.",
+            )
+            return redirect("solicitudes:detalle", pk=self.solicitud.pk)
         return super().dispatch(request, *args, **kwargs)
 
     def get_initial(self):
@@ -158,9 +170,21 @@ class RechazarCreditoView(RolRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.solicitud = get_object_or_404(
-            SolicitudCredito.objects.select_related("cliente"),
+            SolicitudCredito.objects.select_related("cliente", "evaluacion"),
             pk=self.kwargs["solicitud_id"],
         )
+        if self.solicitud.estado != SolicitudCredito.Estado.EN_EVALUACION:
+            messages.warning(
+                request,
+                f"La solicitud #{self.solicitud.pk} no puede rechazarse sin previa revisión del analista.",
+            )
+            return redirect("solicitudes:detalle", pk=self.solicitud.pk)
+        if not hasattr(self.solicitud, "evaluacion"):
+            messages.error(
+                request,
+                "La solicitud debe contar con evaluación previa del analista antes de ser resuelta por el Jefe.",
+            )
+            return redirect("solicitudes:detalle", pk=self.solicitud.pk)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -183,6 +207,131 @@ class RechazarCreditoView(RolRequiredMixin, FormView):
         except ValidationError as e:
             messages.error(self.request, str(e))
             return self.form_invalid(form)
+
+
+class ResolverSolicitudView(RolRequiredMixin, View):
+    """
+    Resolución unificada de solicitudes evaluadas para el Jefe de Créditos.
+    Permite examinar antecedentes, garantías, buró y dictamen técnico para aprobar o rechazar.
+    """
+
+    roles_permitidos = [Usuario.Rol.JEFE]
+    template_name = "creditos/credito_resolver.html"
+
+    def get_solicitud(self, sol_id):
+        if not sol_id:
+            return None
+        try:
+            return (
+                SolicitudCredito.objects.select_related("cliente", "evaluacion")
+                .prefetch_related("garantias")
+                .filter(pk=int(sol_id), estado=SolicitudCredito.Estado.EN_EVALUACION)
+                .first()
+            )
+        except (ValueError, TypeError):
+            return None
+
+    def get(self, request, *args, **kwargs):
+        sol_id = request.GET.get("solicitud_id")
+        solicitud = self.get_solicitud(sol_id)
+        if sol_id and not solicitud:
+            messages.warning(
+                request,
+                "La solicitud indicada no existe, no está en estado En Evaluación o ya fue resuelta.",
+            )
+            return redirect("creditos:resolver")
+
+        solicitudes_pendientes = (
+            SolicitudCredito.objects.filter(estado=SolicitudCredito.Estado.EN_EVALUACION)
+            .select_related("cliente", "evaluacion")
+            .order_by("-fecha_solicitud")
+        )
+
+        form_aprobar = None
+        form_rechazar = RechazoCreditoForm()
+        buro = None
+        cuota_estimada = None
+
+        if solicitud:
+            if hasattr(solicitud, "evaluacion") and solicitud.evaluacion.resultado == "FAVORABLE":
+                form_aprobar = AprobacionCreditoForm(
+                    initial={
+                        "monto_aprobado": solicitud.monto_solicitado,
+                        "plazo_meses": solicitud.plazo_meses,
+                        "tasa_interes_anual": Decimal("14.00"),
+                    }
+                )
+            cli = solicitud.cliente
+            from evaluacion.services import consultar_historial_externo, estimar_cuota_francesa
+
+            buro = consultar_historial_externo(ci=cli.ci, nombres=cli.nombres, apellidos=cli.apellidos)
+            cuota_estimada = estimar_cuota_francesa(solicitud.monto_solicitado, solicitud.plazo_meses)
+
+        context = {
+            "solicitudes_pendientes": solicitudes_pendientes,
+            "solicitud_obj": solicitud,
+            "form_aprobar": form_aprobar,
+            "form_rechazar": form_rechazar,
+            "buro": buro,
+            "cuota_estimada": cuota_estimada,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        sol_id = request.POST.get("solicitud_id")
+        solicitud = self.get_solicitud(sol_id)
+        if not solicitud:
+            messages.error(request, "Debe seleccionar una solicitud válida en estado En Evaluación.")
+            return redirect("creditos:resolver")
+
+        action = request.POST.get("action")
+
+        if action == "aprobar":
+            form = AprobacionCreditoForm(request.POST)
+            if form.is_valid():
+                try:
+                    credito = aprobar_solicitud_credito(
+                        solicitud_id=solicitud.pk,
+                        usuario_id=request.user.pk,
+                        tasa_anual=form.cleaned_data["tasa_interes_anual"],
+                        plazo_meses=form.cleaned_data["plazo_meses"],
+                        monto_aprobado=form.cleaned_data["monto_aprobado"],
+                    )
+                    messages.success(
+                        request,
+                        f"Crédito {credito.numero_credito} aprobado exitosamente para {solicitud.cliente.nombres} {solicitud.cliente.apellidos}. Contrato y cronograma generados.",
+                    )
+                    return redirect("creditos:detalle", pk=credito.pk)
+                except ValidationError as e:
+                    messages.error(request, e.message if hasattr(e, "message") else str(e))
+            else:
+                for err in form.errors.values():
+                    messages.error(request, err.as_text())
+            return redirect(f"{reverse_lazy('creditos:resolver')}?solicitud_id={solicitud.pk}")
+
+        elif action == "rechazar":
+            form = RechazoCreditoForm(request.POST)
+            if form.is_valid():
+                try:
+                    rechazar_solicitud_credito(
+                        solicitud_id=solicitud.pk,
+                        motivo_rechazo=form.cleaned_data["motivo_rechazo"],
+                        usuario=request.user,
+                    )
+                    messages.warning(
+                        request,
+                        f"Solicitud #{solicitud.pk} rechazada correctamente con motivo documentado.",
+                    )
+                    return redirect("creditos:resolver")
+                except ValidationError as e:
+                    messages.error(request, str(e))
+            else:
+                for err in form.errors.values():
+                    messages.error(request, err.as_text())
+            return redirect(f"{reverse_lazy('creditos:resolver')}?solicitud_id={solicitud.pk}")
+
+        messages.error(request, "Acción no reconocida.")
+        return redirect("creditos:resolver")
 
 
 class CronogramaView(RolRequiredMixin, DetailView):
@@ -217,6 +366,43 @@ class CronogramaView(RolRequiredMixin, DetailView):
             total_saldo=Sum("saldo_cuota"),
         )
         context["totales"] = totales
+        return context
+
+
+class ContratoImpresionView(RolRequiredMixin, DetailView):
+    """
+    CU09 / RF10: Emisión e impresión del contrato legal de crédito.
+    """
+
+    roles_permitidos = [
+        Usuario.Rol.ADMINISTRADOR,
+        Usuario.Rol.OFICIAL,
+        Usuario.Rol.ANALISTA,
+        Usuario.Rol.JEFE,
+        Usuario.Rol.CAJERO,
+        Usuario.Rol.GERENTE,
+    ]
+    model = Credito
+    template_name = "creditos/contrato_impresion.html"
+    context_object_name = "credito"
+
+    def get_queryset(self):
+        return Credito.objects.select_related(
+            "solicitud__cliente", "solicitud__evaluacion", "contrato"
+        ).prefetch_related("solicitud__garantias", "cuotas")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        contrato = getattr(self.object, "contrato", None)
+        context["contrato"] = contrato
+        cuotas = self.object.cuotas.order_by("numero_cuota")
+        context["primera_cuota"] = cuotas.first()
+        context["ultima_cuota"] = cuotas.last()
+        garantias = self.object.solicitud.garantias.all()
+        context["garantias"] = garantias
+        context["total_garantias"] = (
+            sum(g.valor for g in garantias) if garantias else Decimal("0.00")
+        )
         return context
 
 

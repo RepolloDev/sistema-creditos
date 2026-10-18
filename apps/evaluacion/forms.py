@@ -16,7 +16,13 @@ class EvaluacionCreditoForm(forms.ModelForm):
             "observaciones",
         ]
         widgets = {
-            "ingresos": forms.NumberInput(attrs={"step": "0.01", "min": "0.00", "id": "id_ingresos"}),
+            "solicitud": forms.Select(
+                attrs={
+                    "id": "id_solicitud",
+                    "onchange": "if(this.value){window.location.href=window.location.pathname+'?solicitud_id='+encodeURIComponent(this.value);}else{window.location.href=window.location.pathname;}",
+                }
+            ),
+            "ingresos": forms.NumberInput(attrs={"step": "0.01", "min": "0.00", "readonly": True, "id": "id_ingresos"}),
             "gastos": forms.NumberInput(attrs={"step": "0.01", "min": "0.00", "id": "id_gastos"}),
             "capacidad_pago": forms.NumberInput(attrs={"step": "0.01", "readonly": True, "id": "id_capacidad_pago"}),
             "observaciones": forms.Textarea(attrs={"rows": 2}),
@@ -25,16 +31,17 @@ class EvaluacionCreditoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["capacidad_pago"].required = False
-        from django.db.models import Q
         from solicitudes.models import SolicitudCredito
 
-        qs = SolicitudCredito.objects.select_related("cliente").filter(
-            estado__in=["REGISTRADA", "EN_EVALUACION"]
-        )
         if self.instance and self.instance.pk:
-            qs = qs.filter(Q(evaluacion__isnull=True) | Q(pk=self.instance.solicitud_id))
+            qs = SolicitudCredito.objects.select_related("cliente").filter(
+                pk=self.instance.solicitud_id
+            )
         else:
-            qs = qs.filter(evaluacion__isnull=True)
+            qs = SolicitudCredito.objects.select_related("cliente").filter(
+                estado=SolicitudCredito.Estado.REGISTRADA,
+                evaluacion__isnull=True,
+            )
         self.fields["solicitud"].queryset = qs.order_by("-id")
         self.fields["solicitud"].label_from_instance = (
             lambda s: f"Solicitud #{s.pk} — {s.cliente.apellidos}, {s.cliente.nombres} (Bs. {s.monto_solicitado:.2f})"

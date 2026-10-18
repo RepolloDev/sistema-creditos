@@ -1,0 +1,264 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Contrato de Crédito — {{ contrato.numero_contrato|default:credito.numero_credito }}{% endblock %}
+
+{% block actions %}
+<button type="button" onclick="window.print()" role="button">Imprimir Contrato</button>
+<a href="{% url 'creditos:detalle' credito.pk %}" role="button" class="outline">Volver al Crédito</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .hoja-contrato {
+    background: #ffffff;
+    max-width: 820px;
+    margin: 0 auto 2rem auto;
+    padding: 2.5rem 3rem;
+    border: 1px solid #d1d5db;
+    color: #111827;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    font-family: "Georgia", "Times New Roman", serif;
+  }
+  .contrato-encabezado {
+    text-align: center;
+    border-bottom: 2px solid #111827;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .contrato-encabezado h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem 0;
+    letter-spacing: 0.05em;
+    color: #111827;
+  }
+  .contrato-encabezado h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: #374151;
+  }
+  .contrato-meta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.82rem;
+    margin-bottom: 1.5rem;
+    font-family: var(--pico-font-family);
+  }
+  .contrato-meta div {
+    display: flex;
+    flex-direction: column;
+  }
+  .contrato-meta span.label {
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  .contrato-meta span.val {
+    font-weight: 700;
+    color: #111827;
+  }
+  .clausula {
+    margin-bottom: 1.25rem;
+    text-align: justify;
+  }
+  .clausula strong.titulo {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #111827;
+  }
+  .tabla-garantias {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    font-size: 0.88rem;
+    font-family: var(--pico-font-family);
+  }
+  .tabla-garantias th, .tabla-garantias td {
+    border: 1px solid #d1d5db;
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+  }
+  .tabla-garantias th {
+    background: #f3f4f6;
+    font-weight: 600;
+  }
+  .firmas-contenedor {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    margin-top: 4.5rem;
+    padding-top: 1rem;
+    font-family: var(--pico-font-family);
+  }
+  .firma-bloque {
+    text-align: center;
+    border-top: 1px solid #111827;
+    padding-top: 0.5rem;
+  }
+  .firma-bloque p {
+    margin: 0.15rem 0;
+    font-size: 0.85rem;
+  }
+  .huella-box {
+    width: 65px;
+    height: 85px;
+    border: 1px dashed #9ca3af;
+    margin: 0.75rem auto 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: #9ca3af;
+  }
+
+  @media print {
+    .hoja-contrato {
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+      font-size: 10pt !important;
+      line-height: 1.45 !important;
+    }
+    .contrato-meta {
+      background: transparent !important;
+      border: 1px solid #000000 !important;
+    }
+    .firmas-contenedor {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+  }
+</style>
+
+<div class="hoja-contrato">
+  <div class="contrato-encabezado">
+    <h2>BANCO VOLKSKAS S.A.</h2>
+    <h4>DIVISIÓN DE CRÉDITO Y FINANCIAMIENTO</h4>
+    <p><small>CONTRATO PRIVADO DE PRÉSTAMO DE DINERO CON RECONOCIMIENTO DE FIRMAS Y EFICACIA EJECUTIVA</small></p>
+  </div>
+
+  <div class="contrato-meta">
+    <div>
+      <span class="label">Nº Contrato</span>
+      <span class="val mono">{{ contrato.numero_contrato|default:"PENDIENTE" }}</span>
+    </div>
+    <div>
+      <span class="label">Nº Operación Crédito</span>
+      <span class="val mono">{{ credito.numero_credito }}</span>
+    </div>
+    <div>
+      <span class="label">Fecha Generación</span>
+      <span class="val">{{ contrato.fecha_generacion|date:"d/m/Y H:i"|default:"Al momento de emitir" }}</span>
+    </div>
+    <div>
+      <span class="label">Estado Documento</span>
+      <span class="val">
+        <span class="badge badge-{{ contrato.estado|lower }}">{{ contrato.get_estado_display|default:"GENERADO" }}</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="clausula">
+    <strong class="titulo">CLÁUSULA PRIMERA: DE LAS PARTES CONTRATANTES.</strong>
+    Concurren a la suscripción del presente contrato:
+    <ol style="margin-top: 0.35rem; padding-left: 1.25rem;">
+      <li>
+        <strong>EL BANCO:</strong> <strong>BANCO VOLKSKAS S.A.</strong>, entidad bancaria legalmente constituida, regulada por la Autoridad de Supervisión Financiera y el Código de Comercio.
+      </li>
+      <li>
+        <strong>EL PRESTATARIO:</strong> El ciudadano(a) <strong>{{ credito.solicitud.cliente.nombres|upper }} {{ credito.solicitud.cliente.apellidos|upper }}</strong>, mayor de edad, hábil por ley, titular de la Cédula de Identidad Nº <strong>{{ credito.solicitud.cliente.ci }}</strong>, con domicilio legal ubicado en {{ credito.solicitud.cliente.direccion }} y teléfono de referencia {{ credito.solicitud.cliente.telefono }}.
+      </li>
+    </ol>
+  </div>
+
+  <div class="clausula">
+    <strong class="titulo">CLÁUSULA SEGUNDA: DEL OBJETO Y MONTO DEL FINANCIAMIENTO.</strong>
+    EL BANCO otorga en favor de EL PRESTATARIO un préstamo de dinero bajo modalidad de crédito financiero por la suma autorizada de <strong>Bs. {{ credito.monto_aprobado|floatformat:2 }}</strong> (Son: Bolivianos {{ credito.monto_aprobado|floatformat:2 }}), recursos dinerarios otorgados con destino específico a: <em>{{ credito.solicitud.destino }}</em>, conforme a la Solicitud de Crédito Nº {{ credito.solicitud.id }}.
+  </div>
+
+  <div class="clausula">
+    <strong class="titulo">CLÁUSULA TERCERA: CONDICIONES FINANCIERAS Y PLAN DE AMORTIZACIÓN.</strong>
+    La operación crediticia se rige bajo los siguientes términos incondicionales:
+    <ul style="margin-top: 0.35rem; padding-left: 1.25rem;">
+      <li><strong>Plazo de Financiamiento:</strong> {{ credito.plazo_meses }} meses calendario, computables a partir de la fecha de desembolso efectivo en cuenta.</li>
+      <li><strong>Tasa de Interés Nominal:</strong> {{ credito.tasa_interes }}% anual fija sobre saldos deudores.</li>
+      <li><strong>Sistema de Amortización:</strong> Sistema Francés de Cuota Fija Mensual consecutiva compuesta por amortización a capital e interés devengado.</li>
+      <li><strong>Cuota Periódica Mensual Aprox.:</strong> Bs. {{ primera_cuota.monto_cuota|floatformat:2 }}, exigible cada treinta (30) días calendario de acuerdo con el cronograma oficial de amortización anexo.</li>
+    </ul>
+  </div>
+
+  <div class="clausula">
+    <strong class="titulo">CLÁUSULA CUARTA: FORMALIZACIÓN Y DESEMBOLSO DE FONDOS.</strong>
+    El presente contrato adquiere plena vigencia a partir de su firma física o electrónica. El desembolso del importe total aprobado será efectivizado mediante transferencia directa o abono en la cuenta bancaria de ahorros o corriente asignada a nombre de EL PRESTATARIO bajo la identificación: <span class="mono">VK-CTA-{{ credito.solicitud.cliente.ci }}</span>, activando en dicho acto el estado vigente de la obligación crediticia en el sistema central de la entidad financiera.
+  </div>
+
+  <div class="clausula">
+    <strong class="titulo">CLÁUSULA QUINTA: GARANTÍAS Y RESPALDO PATRIMONIAL.</strong>
+    En garantía del cumplimiento total, exacto y oportuno de la obligación de pago, intereses, gastos judiciales o extrajudiciales que demandare su cobranza:
+    {% if garantias %}
+      <p style="margin: 0.4rem 0;">EL PRESTATARIO constituye formalmente gravamen patrimonial sobre los siguientes bienes:</p>
+      <table class="tabla-garantias">
+        <thead>
+          <tr>
+            <th>Tipo de Garantía</th>
+            <th>Descripción del Bien / Respaldo</th>
+            <th style="text-align: right;">Valor Comercial Estimado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in garantias %}
+          <tr>
+            <td><strong>{{ g.get_tipo_display }}</strong></td>
+            <td>{{ g.descripcion }}</td>
+            <td style="text-align: right;" class="mono">Bs. {{ g.valor|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="2" style="text-align: right;">Total Cobertura Estimada:</th>
+            <th style="text-align: right;" class="mono">Bs. {{ total_garantias|floatformat:2 }}</th>
+          </tr>
+        </tfoot>
+      </table>
+    {% else %}
+      <p style="margin: 0.4rem 0;">EL PRESTATARIO compromete su garantía personal y patrimonial general quirografaria, afectando la totalidad de sus bienes muebles e inmuebles, habidos y por haber, hasta la cancelación completa e íntegra de la deuda.</p>
+    {% endif %}
+  </div>
+
+  <div class="clausula">
+    <strong class="titulo">CLÁUSULA SEXTA: MORA, CADUCIDAD DE PLAZOS Y FUERZA EJECUTIVA.</strong>
+    La falta de pago de una o más cuotas en sus fechas de vencimiento constituirá a EL PRESTATARIO en mora automática sin requerimiento judicial o intimación previa alguna. Ante cualquier incumplimiento grave, mora superior a los plazos regulatorios o declaración de falsedad documental, EL BANCO podrá dar por vencidos todos los plazos estipulados y demandar judicialmente el pago total del saldo deudor remanente, intereses corrientes, intereses penales de ley, costas y costos procesales, reconociendo el presente contrato plena fuerza ejecutiva según la normativa bancaria y procesal civil vigente.
+  </div>
+
+  <div class="clausula">
+    <strong class="titulo">CLÁUSULA SÉPTIMA: CONFORMIDAD Y ACEPTACIÓN.</strong>
+    Ambas partes manifiestan su absoluta y voluntaria conformidad con el tenor completo de todas y cada una de las cláusulas del presente instrumento legal, ratificando su contenido y firmando en señal de pleno acuerdo.
+  </div>
+
+  <div class="firmas-contenedor">
+    <div class="firma-bloque">
+      <p><strong>EL PRESTATARIO / CLIENTE</strong></p>
+      <p>{{ credito.solicitud.cliente.nombres }} {{ credito.solicitud.cliente.apellidos }}</p>
+      <p class="mono">C.I. {{ credito.solicitud.cliente.ci }}</p>
+      <div class="huella-box">Huella</div>
+    </div>
+    <div class="firma-bloque">
+      <p><strong>POR EL BANCO VOLKSKAS S.A.</strong></p>
+      <p>Oficial / Jefatura de Crédito</p>
+      <p><small>Firma y Sello Autorizado</small></p>
+      <div class="huella-box" style="border: 1px dashed #d1d5db;">Sello</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

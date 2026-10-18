@@ -12,6 +12,9 @@
   <a href="{% url 'pagos:registrar' %}" role="button">Cobrar Cuota</a>
   <a href="{% url 'pagos:control_mora' %}" role="button" class="outline">Control de Mora</a>
 {% elif request.user.rol in "JEFE,GERENTE" %}
+  {% if request.user.rol == "JEFE" or request.user.is_superuser %}
+  <a href="{% url 'creditos:resolver' %}" role="button">+ Resolver Solicitud</a>
+  {% endif %}
   <a href="{% url 'creditos:reportes' %}" role="button" class="outline">Reportes de Cartera</a>
 {% endif %}
 {% endblock %}

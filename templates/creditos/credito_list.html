@@ -3,11 +3,14 @@
 {% block page_title %}Cartera de Créditos{% endblock %}
 
 {% block actions %}
+{% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
+<a href="{% url 'creditos:resolver' %}" role="button">+ Resolver Solicitud Evaluada</a>
+{% endif %}
 {% if request.user.rol in "ADMINISTRADOR,GERENTE,JEFE" or request.user.is_superuser %}
 <a href="{% url 'creditos:reportes' %}" role="button" class="outline">Reportes</a>
 {% endif %}
 {% if request.user.rol in "ADMINISTRADOR,OFICIAL,ANALISTA,JEFE,GERENTE" or request.user.is_superuser %}
-<a href="{% url 'solicitudes:listado' %}" role="button">Solicitudes</a>
+<a href="{% url 'solicitudes:listado' %}" role="button" class="outline">Solicitudes</a>
 {% endif %}
 {% endblock %}
 
@@ -43,7 +46,16 @@
       <tr>
         <td class="mono">#{{ cr.id }}</td>
         <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} (<span class="mono">{{ cr.solicitud.cliente.ci }}</span>)</td>
-        <td>{% if cr.contrato %}<span class="mono">{{ cr.contrato.numero_contrato }}</span> <span class="badge badge-{{ cr.contrato.estado|lower }}">{{ cr.contrato.get_estado_display }}</span>{% else %}—{% endif %}</td>
+        <td>
+          {% if cr.contrato %}
+            <a href="{% url 'creditos:contrato' cr.pk %}" target="_blank" title="Ver / Imprimir Contrato">
+              <span class="mono">{{ cr.contrato.numero_contrato }}</span>
+            </a>
+            <span class="badge badge-{{ cr.contrato.estado|lower }}">{{ cr.contrato.get_estado_display }}</span>
+          {% else %}
+            —
+          {% endif %}
+        </td>
         <td class="mono">Bs. {{ cr.monto_aprobado|floatformat:2 }}</td>
         <td class="mono">Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
         <td><span class="badge badge-{{ cr.estado|lower }}">{{ cr.get_estado_display }}</span></td>
@@ -51,6 +63,9 @@
           <div class="actions">
             <a href="{% url 'creditos:detalle' cr.pk %}" role="button" class="outline">Ver</a>
             <a href="{% url 'creditos:cronograma' cr.pk %}" role="button" class="outline">Cronograma</a>
+            {% if cr.contrato %}
+            <a href="{% url 'creditos:contrato' cr.pk %}" role="button" class="outline" target="_blank">Contrato</a>
+            {% endif %}
             {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
             <a href="{% url 'creditos:eliminar' cr.pk %}" role="button" class="outline danger">Eliminar</a>
             {% endif %}
