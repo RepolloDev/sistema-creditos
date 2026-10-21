@@ -127,23 +127,34 @@ def aplicar_imputacion_cascada(
     monto_total: Decimal,
     forma_pago: str = "EFECTIVO",
     usuario: Optional[Usuario] = None,
+    cuota_inicial_id: Optional[int] = None,
 ) -> list[Pago]:
     """
-    Imputa un pago en cascada comenzando siempre por la cuota exigible más antigua impaga (RN08).
+    Imputa un pago en cascada comenzando por la cuota seleccionada o la más antigua impaga (RN08).
+    Si el monto supera el saldo de la primera cuota, el excedente amortiza las siguientes cuotas.
     """
     remanente = _round(monto_total)
     if remanente <= Decimal("0.00"):
-        raise ValidationError("El monto a abonar debe ser positivo.")
+        raise ValidationError("El monto a abonar debe ser mayor a 0.00.")
 
-    cuotas_pendientes = (
+    cuotas_pendientes = list(
         Cuota.objects.select_for_update()
-        .filter(credito_id=credito_id)
+        .filter(credito_id=credito_id, saldo_cuota__gt=Decimal("0.00"))
         .exclude(estado=Cuota.Estado.PAGADA)
         .order_by("numero_cuota")
     )
 
-    if not cuotas_pendientes.exists():
+    if not cuotas_pendientes:
         raise ValidationError("El crédito no tiene cuotas pendientes de pago.")
+
+    total_pendiente = _round(sum((c.saldo_cuota for c in cuotas_pendientes), Decimal("0.00")))
+    if remanente > total_pendiente:
+        raise ValidationError(
+            f"El monto ingresado (Bs. {remanente}) excede el saldo total de cuotas pendientes del crédito (Bs. {total_pendiente})."
+        )
+
+    if cuota_inicial_id:
+        cuotas_pendientes.sort(key=lambda c: (0 if c.pk == cuota_inicial_id else 1, c.numero_cuota))
 
     pagos_realizados = []
     for cuota in cuotas_pendientes:

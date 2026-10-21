@@ -12,7 +12,12 @@ from usuarios.models import Usuario
 from usuarios.views import RolRequiredMixin
 from .forms import PagoForm
 from .models import Pago
-from .services import calcular_interes_penal, ejecutar_control_mora, registrar_pago_cuota
+from .services import (
+    aplicar_imputacion_cascada,
+    calcular_interes_penal,
+    ejecutar_control_mora,
+    registrar_pago_cuota,
+)
 
 
 class PagoListView(RolRequiredMixin, ListView):
@@ -145,17 +150,29 @@ class RegistrarPagoView(RolRequiredMixin, CreateView):
         monto = form.cleaned_data["monto"]
         forma_pago = form.cleaned_data["forma_pago"]
         try:
-            pago = registrar_pago_cuota(
-                cuota_id=cuota.pk,
-                monto=monto,
+            pagos = aplicar_imputacion_cascada(
+                credito_id=cuota.credito_id,
+                monto_total=monto,
                 forma_pago=forma_pago,
                 usuario=self.request.user,
+                cuota_inicial_id=cuota.pk,
             )
-            messages.success(
-                self.request,
-                f"Pago procesado exitosamente. Recibo Oficial #{pago.numero_recibo} por Bs. {pago.monto}.",
-            )
-            return redirect("pagos:comprobante", pk=pago.pk)
+            primer_pago = pagos[0]
+            if len(pagos) == 1:
+                messages.success(
+                    self.request,
+                    f"Pago procesado exitosamente. Recibo Oficial #{primer_pago.numero_recibo} por Bs. {primer_pago.monto}.",
+                )
+            else:
+                detalle_recibos = ", ".join(
+                    f"#{p.numero_recibo} (Cuota #{p.cuota.numero_cuota}: Bs. {p.monto})"
+                    for p in pagos
+                )
+                messages.success(
+                    self.request,
+                    f"Pago en cascada aplicado a {len(pagos)} cuotas. Recibos emitidos: {detalle_recibos}.",
+                )
+            return redirect("pagos:comprobante", pk=primer_pago.pk)
         except ValidationError as e:
             messages.error(self.request, e.message if hasattr(e, "message") else str(e))
             return self.form_invalid(form)
