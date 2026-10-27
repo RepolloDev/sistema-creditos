@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es" data-theme="light">
 <head>
@@ -101,6 +102,17 @@
     td .actions { justify-content: flex-end; }
     table th { background: #f9fafb; border-bottom: 2px solid #e5e7eb; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.03em; color: #4b5563; }
     table td { border-bottom: 1px solid #f3f4f6; padding: 0.55rem 0.5rem; font-size: 0.88rem; vertical-align: middle; }
+
+    /* Lucide Icons helper */
+    .lucide, svg.lucide {
+      width: 1rem;
+      height: 1rem;
+      stroke-width: 1.75;
+      vertical-align: middle;
+      display: inline-block;
+    }
+    .lucide-sm { width: 0.85rem; height: 0.85rem; }
+    .lucide-lg { width: 1.35rem; height: 1.35rem; }
 
     /* Badges */
     .badge {
@@ -441,5 +453,11 @@
 </head>
 <body>
   {% block root_body %}{% endblock %}
+  <script src="{% static 'js/lucide.min.js' %}"></script>
+  <script>
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  </script>
 </body>
 </html>
