@@ -3,32 +3,121 @@
 {% block page_title %}{{ titulo }}{% endblock %}
 
 {% block actions %}
+{% if credito_seleccionado %}
+<a href="{% url 'creditos:detalle' credito_seleccionado.pk %}" role="button" class="outline">Volver al Crédito</a>
+{% else %}
 <a href="{% url 'pagos:listado' %}" role="button" class="outline">Volver</a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<form method="get" class="search-bar">
-  <input type="search" name="q_ci" value="{{ q_ci }}" placeholder="Buscar créditos activos por C.I. o apellido...">
-  <button type="submit" class="outline">Buscar Cliente</button>
-</form>
-
-{% if creditos_encontrados %}
-<article>
-  <header><strong>Créditos Encontrados</strong></header>
-  <div class="actions">
-    {% for cr in creditos_encontrados %}
-    <a href="{% url 'pagos:registrar' %}?credito_id={{ cr.pk }}" role="button" class="outline">
-      {{ cr.numero_credito }} — {{ cr.solicitud.cliente.apellidos }} (Saldo: Bs. {{ cr.saldo_capital|floatformat:2 }})
-    </a>
-    {% endfor %}
+{% if credito_seleccionado %}
+<article style="margin-bottom: 1.25rem; background: #f9fafb;">
+  <header style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+    <strong>Crédito Seleccionado: <span class="mono">{{ credito_seleccionado.numero_credito }}</span></strong>
+    <div class="actions">
+      <a href="{% url 'creditos:detalle' credito_seleccionado.pk %}" role="button" class="outline" style="padding: 0.2rem 0.6rem; font-size: 0.78rem;">Ver Plan de Cuotas</a>
+      <a href="{% url 'pagos:registrar' %}" role="button" class="outline" style="padding: 0.2rem 0.6rem; font-size: 0.78rem;">Cambiar Crédito</a>
+    </div>
+  </header>
+  <div class="grid">
+    <div>
+      <small>Titular</small><br>
+      <strong>{{ credito_seleccionado.solicitud.cliente.apellidos }}, {{ credito_seleccionado.solicitud.cliente.nombres }}</strong>
+      (<span class="mono">{{ credito_seleccionado.solicitud.cliente.ci }}</span>)
+    </div>
+    <div>
+      <small>Cuota Inicial</small><br>
+      {% if cuota_seleccionada %}
+        <strong>Cuota #{{ cuota_seleccionada.numero_cuota }}</strong> (Vence: {{ cuota_seleccionada.fecha_vencimiento|date:"d/m/Y" }})
+      {% else %}
+        —
+      {% endif %}
+    </div>
+    <div>
+      <small>Saldo Cuota</small><br>
+      {% if cuota_seleccionada %}
+        <strong class="mono">Bs. {{ cuota_seleccionada.saldo_cuota|floatformat:2 }}</strong>
+      {% else %}
+        —
+      {% endif %}
+    </div>
+    <div>
+      <small>Deuda Total en Cuotas</small><br>
+      <strong class="mono">Bs. {{ total_pendiente_credito|floatformat:2 }}</strong>
+    </div>
   </div>
+  <p style="margin: 0.6rem 0 0 0;"><small>Si ingresa un monto superior al saldo de la cuota seleccionada, el excedente se imputará automáticamente en cascada a las cuotas siguientes.</small></p>
 </article>
-{% elif q_ci %}
-<p><small>No se encontraron créditos activos con cuotas pendientes para "{{ q_ci }}".</small></p>
-{% endif %}
 
 <article>
   <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <p><mark>{{ form.non_field_errors|striptags }}</mark></p>
+    {% endif %}
+
+    {% for field in form %}
+      <label>
+        {{ field.label }}
+        {{ field }}
+        {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
+      </label>
+    {% endfor %}
+
+    <div class="actions">
+      <a href="{% url 'creditos:detalle' credito_seleccionado.pk %}" role="button" class="outline">Cancelar</a>
+      <button type="submit">{{ boton_texto }}</button>
+    </div>
+  </form>
+</article>
+
+{% else %}
+<article style="margin-bottom: 1.5rem;">
+  <header><strong>1. Seleccione el Crédito a Cobrar</strong></header>
+  <form method="get" class="search-bar">
+    <input type="search" name="q_ci" value="{{ q_ci }}" placeholder="Buscar crédito activo por C.I., apellido o N° de crédito...">
+    <button type="submit" class="outline">Buscar</button>
+  </form>
+
+  <figure style="margin-bottom: 0;">
+    <table>
+      <thead>
+        <tr>
+          <th>Crédito</th>
+          <th>Titular (C.I.)</th>
+          <th>Saldo Capital</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cr in creditos_encontrados %}
+        <tr>
+          <td class="mono"><a href="{% url 'creditos:detalle' cr.pk %}">{{ cr.numero_credito }}</a></td>
+          <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} (<span class="mono">{{ cr.solicitud.cliente.ci }}</span>)</td>
+          <td class="mono">Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
+          <td><span class="badge badge-{{ cr.estado|lower }}">{{ cr.get_estado_display }}</span></td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'creditos:detalle' cr.pk %}" role="button">Ver Cuotas / Pagar</a>
+              <a href="{% url 'pagos:registrar' %}?credito_id={{ cr.pk }}" role="button" class="outline">Cobrar Próxima</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5">No se encontraron créditos activos con cuotas pendientes{% if q_ci %} para "{{ q_ci }}"{% endif %}.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+</article>
+
+<details style="border: 1px solid #e5e7eb; padding: 1rem; border-radius: 2px; background: #fbfbfb;">
+  <summary style="cursor: pointer; font-weight: 600;">Selección directa de cuota (formulario manual)</summary>
+  <form method="post" style="margin-top: 0.75rem;">
     {% csrf_token %}
     {% if form.non_field_errors %}
       <p><mark>{{ form.non_field_errors|striptags }}</mark></p>
@@ -47,5 +136,6 @@
       <button type="submit">{{ boton_texto }}</button>
     </div>
   </form>
-</article>
+</details>
+{% endif %}
 {% endblock %}

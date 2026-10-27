@@ -9,64 +9,121 @@
 {% endblock %}
 
 {% block content %}
-<form method="get">
-  <div class="grid">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por C.I. o apellido...">
-    <select name="riesgo">
-      <option value="">Todos los riesgos</option>
-      {% for val, label in niveles_riesgo %}
-      <option value="{{ val }}" {% if riesgo_filtro == val %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <select name="resultado">
-      <option value="">Todos los resultados</option>
-      {% for val, label in resultados %}
-      <option value="{{ val }}" {% if resultado_filtro == val %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Filtrar</button>
-  </div>
-</form>
+<article style="margin-bottom: 1.5rem;">
+  <header style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+    <strong>Solicitudes Pendientes de Evaluación</strong>
+    <span class="badge {% if total_por_evaluar %}badge-registrada{% endif %}">{{ total_por_evaluar }} pendientes</span>
+  </header>
 
-<figure>
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Solicitud / Cliente</th>
-        <th>Ingresos</th>
-        <th>Gastos</th>
-        <th>Capacidad Pago</th>
-        <th>Riesgo</th>
-        <th>Resultado</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for ev in evaluaciones %}
-      <tr>
-        <td class="mono">#{{ ev.id }}</td>
-        <td>Sol. <span class="mono">#{{ ev.solicitud.id }}</span> — {{ ev.solicitud.cliente.apellidos }}, {{ ev.solicitud.cliente.nombres }} (<span class="mono">{{ ev.solicitud.cliente.ci }}</span>)</td>
-        <td class="mono">Bs. {{ ev.ingresos|floatformat:2 }}</td>
-        <td class="mono">Bs. {{ ev.gastos|floatformat:2 }}</td>
-        <td class="mono">Bs. {{ ev.capacidad_pago|floatformat:2 }}</td>
-        <td><span class="badge">{{ ev.get_nivel_riesgo_display }}</span></td>
-        <td><span class="badge badge-{{ ev.resultado|lower }}">{{ ev.get_resultado_display }}</span></td>
-        <td>
-          <div class="actions">
-            <a href="{% url 'evaluacion:detalle' ev.pk %}" role="button" class="outline">Ver</a>
-            {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
-            <a href="{% url 'evaluacion:eliminar' ev.pk %}" role="button" class="outline danger">Eliminar</a>
+  <figure style="margin-bottom: 0;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente (C.I.)</th>
+          <th>Monto / Plazo</th>
+          <th>Destino</th>
+          <th>Garantías</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in solicitudes_por_evaluar %}
+        <tr>
+          <td class="mono">#{{ s.id }}</td>
+          <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }} (<span class="mono">{{ s.cliente.ci }}</span>)</td>
+          <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }} ({{ s.plazo_meses }} m.)</td>
+          <td>{{ s.destino|truncatechars:35 }}</td>
+          <td>
+            {% if s.num_garantias > 0 %}
+              <span class="mono">{{ s.num_garantias }} — Bs. {{ s.suma_garantias|floatformat:2 }}</span>
+            {% else %}
+              <span class="badge">Sin garantías</span>
             {% endif %}
-          </div>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="8">Sin evaluaciones registradas.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</figure>
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'solicitudes:detalle' s.pk %}" role="button" class="outline">Expediente</a>
+              {% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
+              <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" role="button">Evaluar</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">No hay solicitudes en estado REGISTRADA pendientes de evaluación.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+</article>
 
-{% include "includes/paginacion.html" %}
+<details open style="border: 1px solid #e5e7eb; padding: 1rem; border-radius: 2px; background: #fbfbfb;">
+  <summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.75rem;">
+    Historial de Evaluaciones Emitidas ({{ page_obj.paginator.count|default:evaluaciones|length }})
+  </summary>
+
+  <form method="get" style="margin-top: 0.75rem;">
+    <div class="grid">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por C.I., apellido o # solicitud...">
+      <select name="riesgo">
+        <option value="">Todos los riesgos</option>
+        {% for val, label in niveles_riesgo %}
+        <option value="{{ val }}" {% if selected_riesgo == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="resultado">
+        <option value="">Todos los resultados</option>
+        {% for val, label in resultados %}
+        <option value="{{ val }}" {% if selected_resultado == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="outline">Filtrar</button>
+    </div>
+  </form>
+
+  <figure style="margin-bottom: 0;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Solicitud / Cliente</th>
+          <th>Ingresos</th>
+          <th>Gastos</th>
+          <th>Capacidad Pago</th>
+          <th>Riesgo</th>
+          <th>Resultado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ev in evaluaciones %}
+        <tr>
+          <td class="mono">#{{ ev.id }}</td>
+          <td>Sol. <span class="mono">#{{ ev.solicitud.id }}</span> — {{ ev.solicitud.cliente.apellidos }}, {{ ev.solicitud.cliente.nombres }} (<span class="mono">{{ ev.solicitud.cliente.ci }}</span>)</td>
+          <td class="mono">Bs. {{ ev.ingresos|floatformat:2 }}</td>
+          <td class="mono">Bs. {{ ev.gastos|floatformat:2 }}</td>
+          <td class="mono">Bs. {{ ev.capacidad_pago|floatformat:2 }}</td>
+          <td><span class="badge">{{ ev.get_nivel_riesgo_display }}</span></td>
+          <td><span class="badge badge-{{ ev.resultado|lower }}">{{ ev.get_resultado_display }}</span></td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'evaluacion:detalle' ev.pk %}" role="button" class="outline">Ver</a>
+              {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
+              <a href="{% url 'evaluacion:eliminar' ev.pk %}" role="button" class="outline danger">Eliminar</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">Sin evaluaciones registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+
+  {% include "includes/paginacion.html" %}
+</details>
 {% endblock %}

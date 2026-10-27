@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import DeleteView, DetailView, FormView, ListView, TemplateView, View
@@ -58,9 +58,30 @@ class CreditoListView(RolRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["q"] = self.request.GET.get("q", "")
-        context["selected_estado"] = self.request.GET.get("estado", "")
+        q = self.request.GET.get("q", "").strip()
+        estado = self.request.GET.get("estado", "").strip()
+        context["q"] = q
+        context["selected_estado"] = estado
+        context["estado_filtro"] = estado
         context["estados"] = Credito.Estado.choices
+
+        context["count_todos"] = Credito.objects.count()
+        context["count_aprobado"] = Credito.objects.filter(estado=Credito.Estado.APROBADO).count()
+        context["count_vigente"] = Credito.objects.filter(estado=Credito.Estado.VIGENTE).count()
+        context["count_en_mora"] = Credito.objects.filter(estado=Credito.Estado.EN_MORA).count()
+        context["count_cancelado"] = Credito.objects.filter(estado=Credito.Estado.CANCELADO).count()
+
+        user = self.request.user
+        if user.is_superuser or user.rol in [Usuario.Rol.ADMINISTRADOR, Usuario.Rol.JEFE]:
+            context["solicitudes_evaluadas"] = (
+                SolicitudCredito.objects.filter(estado=SolicitudCredito.Estado.EN_EVALUACION)
+                .select_related("cliente", "evaluacion")
+                .annotate(
+                    num_garantias=Count("garantias"),
+                    suma_garantias=Sum("garantias__valor"),
+                )
+                .order_by("-fecha_solicitud", "-id")
+            )
         return context
 
 

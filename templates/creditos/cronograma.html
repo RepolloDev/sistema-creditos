@@ -25,6 +25,7 @@
         <th>Cuota Total</th>
         <th>Saldo</th>
         <th>Estado</th>
+        <th class="no-print"></th>
       </tr>
     </thead>
     <tbody>
@@ -37,6 +38,13 @@
         <td class="mono">Bs. {{ c.monto_cuota|floatformat:2 }}</td>
         <td class="mono">Bs. {{ c.saldo_cuota|floatformat:2 }}</td>
         <td><span class="badge badge-{{ c.estado|lower }}">{{ c.get_estado_display }}</span></td>
+        <td class="no-print">
+          {% if c.estado != 'PAGADA' and credito.estado != 'APROBADO' %}
+            {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
+            <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}&cuota={{ c.pk }}" role="button" class="outline">Pagar</a>
+            {% endif %}
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -46,7 +54,9 @@
         <th>Bs. {{ totales.total_capital|floatformat:2 }}</th>
         <th>Bs. {{ totales.total_interes|floatformat:2 }}</th>
         <th>Bs. {{ totales.total_cuotas|floatformat:2 }}</th>
-        <th colspan="2"></th>
+        <th>Bs. {{ totales.total_saldo|floatformat:2 }}</th>
+        <th></th>
+        <th class="no-print"></th>
       </tr>
     </tfoot>
   </table>

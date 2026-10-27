@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView
@@ -50,12 +50,47 @@ class PagoListView(RolRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["q"] = self.request.GET.get("q", "")
-        context["selected_forma"] = self.request.GET.get("forma_pago", "")
+        q = self.request.GET.get("q", "").strip()
+        forma = self.request.GET.get("forma_pago", "").strip()
+        q_cobro = self.request.GET.get("q_cobro", "").strip()
+        context["q"] = q
+        context["q_cobro"] = q_cobro
+        context["selected_forma"] = forma
+        context["forma_filtro"] = forma
         context["formas_pago"] = Pago.FormaPago.choices
         context["total_recaudado"] = (
             Pago.objects.aggregate(s=Sum("monto"))["s"] or Decimal("0.00")
         )
+
+        user = self.request.user
+        if user.is_superuser or user.rol in [Usuario.Rol.ADMINISTRADOR, Usuario.Rol.CAJERO]:
+            cobros_qs = (
+                Credito.objects.filter(
+                    estado__in=["VIGENTE", "EN_MORA"],
+                    cuotas__estado__in=["PENDIENTE", "VENCIDA"],
+                    cuotas__saldo_cuota__gt=0,
+                )
+                .select_related("solicitud__cliente")
+                .annotate(
+                    cuotas_impagas=Count(
+                        "cuotas",
+                        filter=Q(
+                            cuotas__estado__in=["PENDIENTE", "VENCIDA"],
+                            cuotas__saldo_cuota__gt=0,
+                        ),
+                    )
+                )
+                .distinct()
+                .order_by("-id")
+            )
+            if q_cobro:
+                cobros_qs = cobros_qs.filter(
+                    Q(numero_credito__icontains=q_cobro)
+                    | Q(solicitud__cliente__ci__icontains=q_cobro)
+                    | Q(solicitud__cliente__nombres__icontains=q_cobro)
+                    | Q(solicitud__cliente__apellidos__icontains=q_cobro)
+                )
+            context["creditos_por_cobrar"] = cobros_qs[:10]
         return context
 
 
@@ -95,32 +130,56 @@ class RegistrarPagoView(RolRequiredMixin, CreateView):
     form_class = PagoForm
     template_name = "pagos/pago_form.html"
 
+    def _resolver_seleccion(self):
+        cuota_id = self.request.GET.get("cuota") or self.request.POST.get("cuota")
+        credito_id = self.request.GET.get("credito") or self.request.GET.get("credito_id")
+        cuota_obj = None
+        credito_obj = None
+        if cuota_id:
+            try:
+                cuota_obj = (
+                    Cuota.objects.select_related("credito", "credito__solicitud__cliente")
+                    .filter(pk=int(cuota_id))
+                    .first()
+                )
+                if cuota_obj:
+                    credito_obj = cuota_obj.credito
+            except (ValueError, TypeError):
+                pass
+        if not credito_obj and credito_id:
+            try:
+                credito_obj = (
+                    Credito.objects.select_related("solicitud__cliente")
+                    .filter(pk=int(credito_id))
+                    .first()
+                )
+                if credito_obj and not cuota_obj:
+                    cuota_obj = (
+                        Cuota.objects.filter(
+                            credito=credito_obj,
+                            estado__in=["PENDIENTE", "VENCIDA"],
+                            saldo_cuota__gt=0,
+                        )
+                        .order_by("numero_cuota")
+                        .first()
+                    )
+            except (ValueError, TypeError):
+                pass
+        return credito_obj, cuota_obj
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        credito_id = self.request.GET.get("credito") or self.request.GET.get("credito_id")
-        if credito_id:
-            kwargs["credito_id"] = credito_id
+        credito_obj, _ = self._resolver_seleccion()
+        if credito_obj:
+            kwargs["credito_id"] = credito_obj.pk
         return kwargs
 
     def get_initial(self):
         initial = super().get_initial()
-        cuota_id = self.request.GET.get("cuota")
-        credito_id = self.request.GET.get("credito") or self.request.GET.get("credito_id")
-        if cuota_id:
-            cuota = Cuota.objects.filter(pk=cuota_id).first()
-            if cuota:
-                initial["cuota"] = cuota.pk
-                initial["monto"] = cuota.saldo_cuota
-        elif credito_id:
-            cuota = (
-                Cuota.objects.filter(credito_id=credito_id)
-                .filter(estado__in=["PENDIENTE", "VENCIDA"], saldo_cuota__gt=0)
-                .order_by("numero_cuota")
-                .first()
-            )
-            if cuota:
-                initial["cuota"] = cuota.pk
-                initial["monto"] = cuota.saldo_cuota
+        _, cuota_obj = self._resolver_seleccion()
+        if cuota_obj:
+            initial["cuota"] = cuota_obj.pk
+            initial["monto"] = cuota_obj.saldo_cuota
         return initial
 
     def get_context_data(self, **kwargs):
@@ -129,20 +188,36 @@ class RegistrarPagoView(RolRequiredMixin, CreateView):
         context["q_ci"] = q_ci
         context["titulo"] = "Cobro de Cuota en Ventanilla"
         context["boton_texto"] = "Procesar Pago y Emitir Recibo"
-        if q_ci:
-            context["creditos_encontrados"] = (
+
+        credito_obj, cuota_obj = self._resolver_seleccion()
+        context["credito_seleccionado"] = credito_obj
+        context["cuota_seleccionada"] = cuota_obj
+        if credito_obj:
+            context["total_pendiente_credito"] = (
+                credito_obj.cuotas.filter(
+                    estado__in=["PENDIENTE", "VENCIDA"], saldo_cuota__gt=0
+                ).aggregate(s=Sum("saldo_cuota"))["s"]
+                or Decimal("0.00")
+            )
+        else:
+            activos_qs = (
                 Credito.objects.filter(
-                    Q(solicitud__cliente__ci__icontains=q_ci)
-                    | Q(numero_credito__icontains=q_ci)
-                    | Q(solicitud__cliente__apellidos__icontains=q_ci)
-                )
-                .filter(
                     estado__in=["VIGENTE", "EN_MORA"],
                     cuotas__estado__in=["PENDIENTE", "VENCIDA"],
+                    cuotas__saldo_cuota__gt=0,
                 )
                 .distinct()
                 .select_related("solicitud__cliente")
+                .order_by("-id")
             )
+            if q_ci:
+                activos_qs = activos_qs.filter(
+                    Q(solicitud__cliente__ci__icontains=q_ci)
+                    | Q(numero_credito__icontains=q_ci)
+                    | Q(solicitud__cliente__nombres__icontains=q_ci)
+                    | Q(solicitud__cliente__apellidos__icontains=q_ci)
+                )
+            context["creditos_encontrados"] = activos_qs[:10]
         return context
 
     def form_valid(self, form):

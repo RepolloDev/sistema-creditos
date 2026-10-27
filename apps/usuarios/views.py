@@ -328,19 +328,45 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context["total_clientes"] = Cliente.objects.count()
 
         if puede_ver_solicitudes:
-            context["solicitudes_pendientes"] = SolicitudCredito.objects.filter(
-                estado__in=["REGISTRADA", "EN_EVALUACION"]
-            ).count()
-            context["ultimas_solicitudes"] = (
-                SolicitudCredito.objects.select_related("cliente")
-                .order_by("-fecha_solicitud")[:5]
-            )
+            base_sol_qs = SolicitudCredito.objects.select_related(
+                "cliente", "evaluacion", "credito"
+            ).prefetch_related("garantias")
+
+            if rol == Usuario.Rol.ANALISTA:
+                context["solicitudes_pendientes"] = SolicitudCredito.objects.filter(
+                    estado="REGISTRADA", evaluacion__isnull=True
+                ).count()
+                context["titulo_solicitudes"] = "Solicitudes Pendientes de Evaluar"
+                context["ultimas_solicitudes"] = base_sol_qs.filter(
+                    estado="REGISTRADA", evaluacion__isnull=True
+                ).order_by("-fecha_solicitud")[:5]
+            elif rol == Usuario.Rol.JEFE:
+                evaluadas_qs = base_sol_qs.filter(estado="EN_EVALUACION").order_by(
+                    "-fecha_solicitud"
+                )
+                context["solicitudes_pendientes"] = evaluadas_qs.count()
+                if evaluadas_qs.exists():
+                    context["titulo_solicitudes"] = "Solicitudes Evaluadas por Resolver"
+                    context["ultimas_solicitudes"] = evaluadas_qs[:5]
+                else:
+                    context["titulo_solicitudes"] = "Últimas Solicitudes"
+                    context["ultimas_solicitudes"] = base_sol_qs.order_by(
+                        "-fecha_solicitud"
+                    )[:5]
+            else:
+                context["solicitudes_pendientes"] = SolicitudCredito.objects.filter(
+                    estado__in=["REGISTRADA", "EN_EVALUACION"]
+                ).count()
+                context["titulo_solicitudes"] = "Últimas Solicitudes"
+                context["ultimas_solicitudes"] = base_sol_qs.order_by(
+                    "-fecha_solicitud"
+                )[:5]
 
         if rol == Usuario.Rol.ANALISTA:
             from evaluacion.models import EvaluacionCredito
             context["evaluaciones_realizadas"] = EvaluacionCredito.objects.count()
 
-        if rol == Usuario.Rol.OFICIAL:
+        if rol in [Usuario.Rol.OFICIAL, Usuario.Rol.JEFE]:
             context["creditos_por_desembolsar"] = Credito.objects.filter(estado="APROBADO").count()
 
         if puede_ver_cartera:
@@ -361,6 +387,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 Pago.objects.select_related("cuota__credito__solicitud__cliente")
                 .order_by("-fecha_pago")[:5]
             )
+            if rol == Usuario.Rol.CAJERO or is_admin:
+                context["creditos_por_cobrar"] = (
+                    Credito.objects.filter(
+                        estado__in=["VIGENTE", "EN_MORA"],
+                        cuotas__estado__in=["PENDIENTE", "VENCIDA"],
+                        cuotas__saldo_cuota__gt=0,
+                    )
+                    .distinct()
+                    .select_related("solicitud__cliente")
+                    .order_by("-id")[:5]
+                )
 
         if puede_ver_mora:
             context["creditos_en_mora"] = Credito.objects.filter(estado="EN_MORA").count()

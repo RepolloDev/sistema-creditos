@@ -15,16 +15,75 @@
 {% endblock %}
 
 {% block content %}
+{% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
+<article style="margin-bottom: 1.5rem;">
+  <header style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+    <strong>Solicitudes Evaluadas Pendientes de Resolución</strong>
+    <span class="badge {% if solicitudes_evaluadas %}badge-en_evaluacion{% endif %}">{{ solicitudes_evaluadas|length }} por resolver</span>
+  </header>
+  <figure style="margin-bottom: 0;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente (C.I.)</th>
+          <th>Monto / Plazo</th>
+          <th>Garantías</th>
+          <th>Riesgo / Dictamen</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in solicitudes_evaluadas %}
+        <tr>
+          <td class="mono">#{{ s.id }}</td>
+          <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }} (<span class="mono">{{ s.cliente.ci }}</span>)</td>
+          <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }} ({{ s.plazo_meses }} m.)</td>
+          <td>
+            {% if s.num_garantias > 0 %}
+              <span class="mono">{{ s.num_garantias }} — Bs. {{ s.suma_garantias|floatformat:2 }}</span>
+            {% else %}
+              <span class="badge">Sin garantías</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.evaluacion %}
+              <span class="badge">{{ s.evaluacion.get_nivel_riesgo_display }}</span>
+              <span class="badge badge-{% if s.evaluacion.resultado == 'FAVORABLE' %}aprobado{% else %}rechazado{% endif %}">
+                {{ s.evaluacion.get_resultado_display }}
+              </span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'solicitudes:detalle' s.pk %}" role="button" class="outline">Expediente</a>
+              <a href="{% url 'creditos:resolver' %}?solicitud_id={{ s.pk }}" role="button">Resolver</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">No hay solicitudes evaluadas pendientes de resolución en este momento.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+</article>
+{% endif %}
+
 <form method="get">
   <div class="grid">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por C.I., cliente o contrato...">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por C.I., cliente o N° de crédito...">
     <select name="estado">
       <option value="">Todos los estados</option>
       {% for val, label in estados %}
-      <option value="{{ val }}" {% if estado_filtro == val %}selected{% endif %}>{{ label }}</option>
+      <option value="{{ val }}" {% if selected_estado == val %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
-    <button type="submit">Filtrar</button>
+    <button type="submit" class="outline">Filtrar</button>
   </div>
 </form>
 
@@ -32,7 +91,7 @@
   <table>
     <thead>
       <tr>
-        <th>#</th>
+        <th>Crédito</th>
         <th>Cliente (C.I.)</th>
         <th>Contrato</th>
         <th>Monto Aprobado</th>
@@ -44,7 +103,7 @@
     <tbody>
       {% for cr in creditos %}
       <tr>
-        <td class="mono">#{{ cr.id }}</td>
+        <td class="mono"><a href="{% url 'creditos:detalle' cr.pk %}">{{ cr.numero_credito }}</a></td>
         <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} (<span class="mono">{{ cr.solicitud.cliente.ci }}</span>)</td>
         <td>
           {% if cr.contrato %}
@@ -61,7 +120,15 @@
         <td><span class="badge badge-{{ cr.estado|lower }}">{{ cr.get_estado_display }}</span></td>
         <td>
           <div class="actions">
-            <a href="{% url 'creditos:detalle' cr.pk %}" role="button" class="outline">Ver</a>
+            {% if cr.estado == 'APROBADO' and request.user.rol in "ADMINISTRADOR,OFICIAL,JEFE" %}
+              <a href="{% url 'creditos:detalle' cr.pk %}" role="button">
+                {% if cr.contrato and cr.contrato.estado == 'GENERADO' %}Firmar / Desembolsar{% else %}Desembolsar{% endif %}
+              </a>
+            {% elif cr.estado in "VIGENTE,EN_MORA" and request.user.rol == "CAJERO" %}
+              <a href="{% url 'creditos:detalle' cr.pk %}" role="button">Ver Cuotas / Pagar</a>
+            {% else %}
+              <a href="{% url 'creditos:detalle' cr.pk %}" role="button" class="outline">Ver</a>
+            {% endif %}
             <a href="{% url 'creditos:cronograma' cr.pk %}" role="button" class="outline">Cronograma</a>
             {% if cr.contrato %}
             <a href="{% url 'creditos:contrato' cr.pk %}" role="button" class="outline" target="_blank">Contrato</a>

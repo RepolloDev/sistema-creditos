@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, View
@@ -52,9 +52,36 @@ class EvaluacionListView(RolRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["q"] = self.request.GET.get("q", "")
-        context["selected_riesgo"] = self.request.GET.get("riesgo", "")
-        context["selected_resultado"] = self.request.GET.get("resultado", "")
+        q = self.request.GET.get("q", "").strip()
+        riesgo = self.request.GET.get("riesgo", "").strip()
+        resultado = self.request.GET.get("resultado", "").strip()
+
+        pendientes_qs = (
+            SolicitudCredito.objects.filter(
+                estado=SolicitudCredito.Estado.REGISTRADA,
+                evaluacion__isnull=True,
+            )
+            .select_related("cliente")
+            .annotate(
+                num_garantias=Count("garantias"),
+                suma_garantias=Sum("garantias__valor"),
+            )
+            .order_by("-fecha_solicitud", "-id")
+        )
+        context["total_por_evaluar"] = pendientes_qs.count()
+        if q:
+            pendientes_qs = pendientes_qs.filter(
+                Q(cliente__ci__icontains=q)
+                | Q(cliente__nombres__icontains=q)
+                | Q(cliente__apellidos__icontains=q)
+                | Q(id__icontains=q)
+            )
+        context["solicitudes_por_evaluar"] = pendientes_qs
+        context["q"] = q
+        context["selected_riesgo"] = riesgo
+        context["riesgo_filtro"] = riesgo
+        context["selected_resultado"] = resultado
+        context["resultado_filtro"] = resultado
         context["niveles_riesgo"] = EvaluacionCredito.NivelRiesgo.choices
         context["resultados"] = EvaluacionCredito.Resultado.choices
         return context

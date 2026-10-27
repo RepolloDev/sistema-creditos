@@ -13,10 +13,7 @@
 {% endif %}
 {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
   {% if solicitud.estado == 'EN_EVALUACION' %}
-    {% if evaluacion and evaluacion.resultado == 'FAVORABLE' %}
-    <a href="{% url 'creditos:aprobar' solicitud.pk %}" role="button">Aprobar</a>
-    {% endif %}
-    <a href="{% url 'creditos:rechazar' solicitud.pk %}" role="button" class="outline danger">Rechazar</a>
+  <a href="{% url 'creditos:resolver' %}?solicitud_id={{ solicitud.pk }}" role="button">Resolver en Comité</a>
   {% endif %}
 {% endif %}
 {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
@@ -36,10 +33,22 @@
   <div class="step {% if credito and credito.estado == 'APROBADO' %}active{% elif credito %}completed{% elif solicitud.estado == 'RECHAZADA' %}rejected{% endif %}">
     <span class="step-num">3</span> Aprobación
   </div>
-  <div class="step {% if credito.estado == 'VIGENTE' or credito.estado == 'PAGADO' %}completed{% endif %}">
+  <div class="step {% if credito and credito.estado != 'APROBADO' %}completed{% endif %}">
     <span class="step-num">4</span> Desembolso
   </div>
 </div>
+
+{% if solicitud.estado == 'REGISTRADA' and not garantias %}
+  {% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
+  <article style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; background: #f9fafb; border-left: 4px solid #111111;">
+    <div>
+      <strong>Siguiente paso: Registrar Garantías de Respaldo</strong><br>
+      <small>Esta solicitud aún no cuenta con garantías asociadas. Vincule al menos una garantía antes de su revisión por Riesgos.</small>
+    </div>
+    <a href="{% url 'solicitudes:garantia_crear' solicitud.pk %}" role="button">+ Agregar Garantía</a>
+  </article>
+  {% endif %}
+{% endif %}
 
 <div class="grid">
   <article>

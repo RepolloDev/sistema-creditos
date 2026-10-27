@@ -115,8 +115,12 @@
       font-weight: 700;
       border: 1px solid #d1d5db;
     }
-    .main { padding: 1.5rem 2.25rem; max-width: 1200px; width: 100%; height: 100vh; overflow-y: auto; box-sizing: border-box; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.75rem; margin-bottom: 1.25rem; }
+    .main { padding: 1.5rem 2.25rem; max-width: 100%; width: 100%; height: 100vh; overflow-y: auto; box-sizing: border-box; }
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; height: auto; max-height: none; overflow: visible; }
+      .sidebar { height: auto; border-right: none; border-bottom: 1px solid #e5e7eb; }
+      .main { height: auto; overflow: visible; padding: 1rem 1.25rem; }
+    }
     .page-header h2 { margin: 0; font-size: 1.25rem; font-weight: 600; }
     .actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
     .actions a, .actions button, .actions form { margin: 0; }

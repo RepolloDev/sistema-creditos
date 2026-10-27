@@ -47,9 +47,19 @@
         <td>
           <div class="actions">
             <a href="{% url 'solicitudes:detalle' s.pk %}" role="button" class="outline">Ver</a>
+            {% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
+              {% if s.estado == 'REGISTRADA' and not s.garantias.all %}
+              <a href="{% url 'solicitudes:garantia_crear' s.pk %}" role="button">+ Garantía</a>
+              {% endif %}
+            {% endif %}
             {% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
               {% if not s.evaluacion and s.estado == 'REGISTRADA' %}
               <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" role="button">Evaluar</a>
+              {% endif %}
+            {% endif %}
+            {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
+              {% if s.estado == 'EN_EVALUACION' %}
+              <a href="{% url 'creditos:resolver' %}?solicitud_id={{ s.pk }}" role="button">Resolver</a>
               {% endif %}
             {% endif %}
             {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}

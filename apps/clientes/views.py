@@ -50,7 +50,9 @@ class ClienteCreateView(RolRequiredMixin, CreateView):
     model = Cliente
     form_class = ClienteForm
     template_name = "clientes/cliente_form.html"
-    success_url = reverse_lazy("clientes:listado")
+
+    def get_success_url(self):
+        return reverse_lazy("clientes:detalle", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
         response = super().form_valid(form)

@@ -29,7 +29,7 @@
   <div class="step {% if credito.estado != 'APROBADO' %}completed{% elif contrato and contrato.estado == 'FIRMADO' %}active{% endif %}">
     <span class="step-num">3</span> Desembolso
   </div>
-  <div class="step {% if credito.estado == 'PAGADO' %}completed{% elif credito.estado == 'VIGENTE' or credito.estado == 'EN_MORA' %}active{% endif %}">
+  <div class="step {% if credito.estado == 'CANCELADO' %}completed{% elif credito.estado == 'VIGENTE' or credito.estado == 'EN_MORA' %}active{% endif %}">
     <span class="step-num">4</span> Cobranza
   </div>
 </div>
@@ -97,6 +97,7 @@
         <th>Capital</th>
         <th>Interés</th>
         <th>Total Cuota</th>
+        <th>Saldo Cuota</th>
         <th>Estado</th>
         <th></th>
       </tr>
@@ -109,11 +110,12 @@
         <td class="mono">Bs. {{ c.capital|floatformat:2 }}</td>
         <td class="mono">Bs. {{ c.interes|floatformat:2 }}</td>
         <td class="mono">Bs. {{ c.monto_cuota|floatformat:2 }}</td>
+        <td class="mono"><strong>Bs. {{ c.saldo_cuota|floatformat:2 }}</strong></td>
         <td><span class="badge badge-{{ c.estado|lower }}">{{ c.get_estado_display }}</span></td>
         <td>
           {% if c.estado != 'PAGADA' and credito.estado != 'APROBADO' %}
             {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
-            <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}" role="button" class="outline">Pagar</a>
+            <a href="{% url 'pagos:registrar' %}?credito_id={{ credito.pk }}&cuota={{ c.pk }}" role="button">Pagar</a>
             {% endif %}
           {% endif %}
         </td>

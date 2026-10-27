@@ -32,7 +32,7 @@
         <th>Titular (C.I.)</th>
         <th>Vencimiento</th>
         <th>Atraso</th>
-        <th>Cuota Base</th>
+        <th>Saldo Cuota</th>
         <th>Interés Penal</th>
         <th>Total Exigible</th>
         <th></th>
@@ -41,16 +41,16 @@
     <tbody>
       {% for item in lista_mora %}
       <tr>
-        <td><a href="{% url 'creditos:detalle' item.credito.pk %}">Créd. #{{ item.credito.id }}</a> — #{{ item.cuota.numero_cuota }}</td>
-        <td>{{ item.cliente.apellidos }}, {{ item.cliente.nombres }} ({{ item.cliente.ci }})</td>
+        <td><a href="{% url 'creditos:detalle' item.credito.pk %}"><span class="mono">{{ item.credito.numero_credito }}</span></a> — #{{ item.cuota.numero_cuota }}</td>
+        <td>{{ item.cliente.apellidos }}, {{ item.cliente.nombres }} (<span class="mono">{{ item.cliente.ci }}</span>)</td>
         <td>{{ item.cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
         <td>{{ item.dias_atraso }} días</td>
-        <td>Bs. {{ item.cuota.monto_cuota|floatformat:2 }}</td>
-        <td>Bs. {{ item.interes_penal|floatformat:2 }}</td>
-        <td><strong>Bs. {{ item.total_exigible|floatformat:2 }}</strong></td>
+        <td class="mono">Bs. {{ item.cuota.saldo_cuota|floatformat:2 }}</td>
+        <td class="mono">Bs. {{ item.interes_penal|floatformat:2 }}</td>
+        <td class="mono"><strong>Bs. {{ item.total_exigible|floatformat:2 }}</strong></td>
         <td>
           {% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
-          <a href="{% url 'pagos:registrar' %}?credito_id={{ item.credito.pk }}" role="button" class="outline">Cobrar</a>
+          <a href="{% url 'pagos:registrar' %}?credito_id={{ item.credito.pk }}&cuota={{ item.cuota.pk }}" role="button">Cobrar</a>
           {% endif %}
         </td>
       </tr>
