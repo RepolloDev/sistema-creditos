@@ -14,7 +14,7 @@
       <p><mark>{{ form.non_field_errors|striptags }}</mark></p>
     {% endif %}
 
-    <form method="post" action="{% url 'usuarios:login' %}">
+    <form id="login-form" method="post" action="{% url 'usuarios:login' %}">
       {% csrf_token %}
       <label>
         Usuario
@@ -26,6 +26,67 @@
       </label>
       <button type="submit">Ingresar</button>
     </form>
+
+    <footer style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid #e5e7eb;">
+      <small style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;">Acceso Rápido (Demo)</small>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem;">
+        <button type="button" class="quick-btn" onclick="quickLogin('oficial1', 'oficial123')" title="Oficial de Crédito">
+          <i data-lucide="file-pen-line"></i> Oficial
+        </button>
+        <button type="button" class="quick-btn" onclick="quickLogin('analista1', 'analista123')" title="Analista de Crédito">
+          <i data-lucide="file-search"></i> Analista
+        </button>
+        <button type="button" class="quick-btn" onclick="quickLogin('jefe1', 'jefe123')" title="Jefe de Créditos">
+          <i data-lucide="scale"></i> Jefe
+        </button>
+        <button type="button" class="quick-btn" onclick="quickLogin('cajero1', 'cajero123')" title="Cajero">
+          <i data-lucide="banknote"></i> Cajero
+        </button>
+        <button type="button" class="quick-btn" onclick="quickLogin('gerente1', 'gerente123')" title="Gerente">
+          <i data-lucide="landmark"></i> Gerente
+        </button>
+        <button type="button" class="quick-btn" onclick="quickLogin('admin', 'admin123')" title="Administrador">
+          <i data-lucide="shield-check"></i> Admin
+        </button>
+      </div>
+    </footer>
   </article>
 </main>
+
+<style>
+  .quick-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.4rem;
+    font-size: 0.76rem;
+    background: #f9fafb;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 500;
+    margin: 0;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .quick-btn:hover {
+    background: #111111;
+    color: #ffffff;
+    border-color: #111111;
+  }
+</style>
+
+<script>
+  function quickLogin(user, pass) {
+    const userInput = document.querySelector('input[name="username"]');
+    const passInput = document.querySelector('input[name="password"]');
+    const form = document.getElementById('login-form');
+    if (userInput && passInput && form) {
+      userInput.value = user;
+      passInput.value = pass;
+      form.submit();
+    }
+  }
+</script>
 {% endblock %}
