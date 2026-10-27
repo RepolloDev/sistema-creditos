@@ -444,21 +444,26 @@
 
     /* Print Styles */
     @page {
-      size: auto;
-      margin: 15mm 15mm 15mm 15mm;
+      margin: 0;
     }
     @media print {
-      html, body {
+      html {
+        background: #ffffff !important;
+      }
+      body {
         height: auto !important;
+        max-height: none !important;
         overflow: visible !important;
         background: #ffffff !important;
-        color: #000000 !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 15mm !important;
+        box-sizing: border-box !important;
       }
       .sidebar,
       .actions,
       .no-print,
+      header.page-header,
+      form,
       nav {
         display: none !important;
       }
@@ -471,47 +476,20 @@
         padding: 0 !important;
       }
       .main {
+        display: block !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
         padding: 0 !important;
         margin: 0 !important;
         max-width: 100% !important;
         width: 100% !important;
-        height: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
+        box-sizing: border-box !important;
       }
-      header.page-header {
-        border-bottom: 2px solid #000000 !important;
-        padding-bottom: 0.5rem !important;
-        margin-bottom: 1rem !important;
-      }
-      header.page-header h2 {
-        font-size: 1.4rem !important;
-        color: #000000 !important;
-      }
-      article {
-        border: 1px solid #cccccc !important;
-        box-shadow: none !important;
-        padding: 0.75rem !important;
-        break-inside: avoid;
-      }
-      table {
-        width: 100% !important;
-        font-size: 8.5pt !important;
-        border-collapse: collapse !important;
-      }
-      table th, table td {
-        border: 1px solid #d1d5db !important;
-        padding: 0.35rem 0.45rem !important;
-      }
-      table th {
-        background-color: #f3f4f6 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .badge {
-        border: 1px solid #000000 !important;
-        background: transparent !important;
-        color: #000000 !important;
+      .container {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
       }
     }
   </style>

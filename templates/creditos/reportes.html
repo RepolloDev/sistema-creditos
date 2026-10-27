@@ -9,28 +9,6 @@
 {% endblock %}
 
 {% block content %}
-<div class="print-only" style="display: none; margin-bottom: 1.25rem; border-bottom: 2px solid #000; padding-bottom: 0.5rem;">
-  <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-    <div>
-      <h3 style="margin: 0; font-size: 1.3rem;">BANCO VOLKSKAS</h3>
-      <p style="margin: 0; font-size: 0.85rem; color: #555;">Sistema de Créditos — Informe Ejecutivo de Cartera</p>
-    </div>
-    <div style="text-align: right; font-size: 0.78rem; color: #555;">
-      Generado por: <strong>{{ request.user.login }}</strong> ({{ request.user.get_rol_display }})<br>
-      Fecha de emisión: {% now "d/m/Y H:i" %}<br>
-      {% if estado_filtro %}Filtro: Estado <strong>{{ estado_filtro }}</strong>{% endif %}
-    </div>
-  </div>
-</div>
-
-<style>
-  @media print {
-    .print-only { display: block !important; }
-    form.no-print, .th-actions, .td-actions { display: none !important; }
-    .grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 0.5rem !important; }
-  }
-</style>
-
 <div class="grid">
   <article>
     <small>Total Colocado ({{ reporte.total_creditos }} créd.)</small>
