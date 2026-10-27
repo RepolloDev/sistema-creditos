@@ -132,6 +132,18 @@ class UsuarioLoginView(LoginView):
     # automáticamente a su pantalla de trabajo para no pedirle clave otra vez.
     redirect_authenticated_user = True
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        usuario = self.request.user
+        Auditoria.objects.create(
+            usuario=usuario,
+            operacion="INICIO_SESION",
+            entidad="USUARIO",
+            id_entidad=usuario.pk,
+            resultado=Auditoria.Resultado.EXITOSO,
+        )
+        return response
+
 
 class UsuarioLogoutView(LogoutView):
     """
@@ -139,6 +151,17 @@ class UsuarioLogoutView(LogoutView):
     """
 
     next_page = "usuarios:login"
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            Auditoria.objects.create(
+                usuario=request.user,
+                operacion="CIERRE_SESION",
+                entidad="USUARIO",
+                id_entidad=request.user.pk,
+                resultado=Auditoria.Resultado.EXITOSO,
+            )
+        return super().dispatch(request, *args, **kwargs)
 
 
 # ------------------------------------------------------------------------------

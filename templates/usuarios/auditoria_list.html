@@ -25,6 +25,7 @@
     <thead>
       <tr>
         <th>ID</th>
+        <th>Fecha y Hora</th>
         <th>Usuario</th>
         <th>Operación</th>
         <th>Entidad</th>
@@ -35,13 +36,14 @@
       {% for a in auditorias %}
       <tr>
         <td>#{{ a.id }}</td>
+        <td>{{ a.fecha_hora|date:"d/m/Y H:i:s" }}</td>
         <td>{% if a.usuario %}{{ a.usuario.login }}{% else %}SISTEMA{% endif %}</td>
         <td>{{ a.operacion }}</td>
         <td>{{ a.entidad }} #{{ a.id_entidad }}</td>
         <td>{{ a.resultado }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="5">Sin registros de auditoría.</td></tr>
+      <tr><td colspan="6">Sin registros de auditoría.</td></tr>
       {% endfor %}
     </tbody>
   </table>
