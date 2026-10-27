@@ -68,7 +68,16 @@
 
           {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
           <li class="menu-group-title">Sistema</li>
-          <li><a href="{% url 'usuarios:usuario_list' %}" {% if '/usuarios/' in request.path and '/usuarios/dashboard/' not in request.path %}aria-current="page"{% endif %}><span>Usuarios y Auditoría</span></a></li>
+          <li>
+            <a href="{% url 'usuarios:usuario_list' %}" {% if '/usuarios/' in request.path and '/auditorias/' not in request.path and '/dashboard/' not in request.path and '/login/' not in request.path %}aria-current="page"{% endif %}>
+              <span>Usuarios</span>
+            </a>
+          </li>
+          <li>
+            <a href="{% url 'usuarios:auditoria_list' %}" {% if '/usuarios/auditorias/' in request.path %}aria-current="page"{% endif %}>
+              <span>Auditorías</span>
+            </a>
+          </li>
           {% endif %}
         </ul>
       </nav>
