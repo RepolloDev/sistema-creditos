@@ -375,11 +375,12 @@ class AuditoriaListView(SoloAdminMixin, ListView):
     model = Auditoria
     template_name = "usuarios/auditoria_list.html"
     context_object_name = "auditorias"
-    paginate_by = 25
+    paginate_by = 50
 
     def get_queryset(self):
         qs = Auditoria.objects.select_related("usuario").order_by("-fecha_hora", "-id")
         q = self.request.GET.get("q", "").strip()
+        operacion = self.request.GET.get("operacion", "").strip()
         entidad = self.request.GET.get("entidad", "").strip()
         resultado = self.request.GET.get("resultado", "").strip()
         if q:
@@ -388,6 +389,8 @@ class AuditoriaListView(SoloAdminMixin, ListView):
                 | Q(usuario__login__icontains=q)
                 | Q(usuario__nombre_completo__icontains=q)
             )
+        if operacion:
+            qs = qs.filter(operacion=operacion)
         if entidad:
             qs = qs.filter(entidad=entidad)
         if resultado:
@@ -397,8 +400,12 @@ class AuditoriaListView(SoloAdminMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["q"] = self.request.GET.get("q", "")
+        context["selected_operacion"] = self.request.GET.get("operacion", "")
         context["selected_entidad"] = self.request.GET.get("entidad", "")
         context["selected_resultado"] = self.request.GET.get("resultado", "")
+        context["operaciones"] = (
+            Auditoria.objects.values_list("operacion", flat=True).distinct().order_by("operacion")
+        )
         context["entidades"] = (
             Auditoria.objects.values_list("entidad", flat=True).distinct().order_by("entidad")
         )

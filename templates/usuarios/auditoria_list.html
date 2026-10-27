@@ -4,16 +4,42 @@
 
 
 {% block content %}
-<form method="get">
-  <div class="grid">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar operación o usuario...">
-    <select name="entidad">
-      <option value="">Todas las entidades</option>
-      {% for ent in entidades %}
-      <option value="{{ ent }}" {% if selected_entidad == ent %}selected{% endif %}>{{ ent }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Filtrar</button>
+<form method="get" style="margin-bottom: 1.25rem;">
+  <div style="display: flex; gap: 0.6rem; align-items: flex-end; flex-wrap: wrap;">
+    <div style="flex: 2 1 200px;">
+      <label for="id_q" style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem;">Búsqueda</label>
+      <input type="search" id="id_q" name="q" value="{{ q }}" placeholder="Buscar usuario o texto..." style="margin-bottom: 0; height: 2.3rem;">
+    </div>
+    <div style="flex: 1.5 1 160px;">
+      <label for="id_operacion" style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem;">Tipo de Operación</label>
+      <select id="id_operacion" name="operacion" style="margin-bottom: 0; height: 2.3rem;">
+        <option value="">Todas las operaciones</option>
+        {% for op in operaciones %}
+        <option value="{{ op }}" {% if selected_operacion == op %}selected{% endif %}>{{ op }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="flex: 1.5 1 160px;">
+      <label for="id_entidad" style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem;">Entidad</label>
+      <select id="id_entidad" name="entidad" style="margin-bottom: 0; height: 2.3rem;">
+        <option value="">Todas las entidades</option>
+        {% for ent in entidades %}
+        <option value="{{ ent }}" {% if selected_entidad == ent %}selected{% endif %}>{{ ent }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="submit" style="margin-bottom: 0; height: 2.3rem; padding: 0 1.2rem; display: inline-flex; align-items: center; justify-content: center;">
+        Filtrar
+      </button>
+    </div>
+    {% if q or selected_operacion or selected_entidad or selected_resultado %}
+    <div>
+      <a href="{% url 'usuarios:auditoria_list' %}" role="button" class="secondary outline" style="margin-bottom: 0; height: 2.3rem; padding: 0 1rem; display: inline-flex; align-items: center; justify-content: center;">
+        Limpiar
+      </a>
+    </div>
+    {% endif %}
   </div>
 </form>
 
@@ -45,4 +71,6 @@
     </tbody>
   </table>
 </figure>
+
+{% include "includes/paginacion.html" %}
 {% endblock %}
