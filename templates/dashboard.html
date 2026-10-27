@@ -199,12 +199,13 @@
       <tbody>
         {% for cr in creditos_por_cobrar %}
         <tr>
-          <td class="mono"><a href="{% url 'creditos:detalle' cr.pk %}">{{ cr.numero_credito }}</a></td>
+          <td class="mono"><a href="{% url 'creditos:cronograma' cr.pk %}">{{ cr.numero_credito }}</a></td>
           <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }}</td>
           <td class="mono">Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
           <td>
             <div class="actions">
-              <a href="{% url 'creditos:detalle' cr.pk %}" role="button">Ver Cuotas / Pagar</a>
+              <a href="{% url 'creditos:cronograma' cr.pk %}" role="button">Cronograma</a>
+              <a href="{% url 'pagos:registrar' %}?credito_id={{ cr.pk }}" role="button" class="outline">Cobrar</a>
             </div>
           </td>
         </tr>

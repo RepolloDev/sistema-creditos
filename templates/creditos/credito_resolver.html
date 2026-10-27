@@ -7,71 +7,47 @@
 {% endblock %}
 
 {% block content %}
+{% if solicitud_obj %}
 <article style="margin-bottom: 1.25rem;">
-  <label for="id_solicitud">
-    <strong>Seleccionar Solicitud Evaluada:</strong>
-    <select id="id_solicitud" onchange="if(this.value){window.location.href='{% url 'creditos:resolver' %}?solicitud_id='+encodeURIComponent(this.value);}else{window.location.href='{% url 'creditos:resolver' %}';}">
-      <option value="">-- Seleccionar solicitud en evaluación ({{ solicitudes_pendientes|length }} disponibles) --</option>
-      {% for s in solicitudes_pendientes %}
-        <option value="{{ s.id }}" {% if solicitud_obj and solicitud_obj.id == s.id %}selected{% endif %}>
-          Solicitud #{{ s.id }} — {{ s.cliente.apellidos }}, {{ s.cliente.nombres }} (Bs. {{ s.monto_solicitado|floatformat:2 }} | Dictamen: {{ s.evaluacion.get_resultado_display }})
-        </option>
-      {% endfor %}
-    </select>
-  </label>
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+    <div>
+      <strong>Resolviendo Solicitud #{{ solicitud_obj.id }}</strong> — {{ solicitud_obj.cliente.apellidos }}, {{ solicitud_obj.cliente.nombres }} ({{ solicitud_obj.cliente.ci }})
+    </div>
+    <a href="{% url 'creditos:resolver' %}" role="button" class="outline">Cambiar Solicitud</a>
+  </div>
 </article>
 
 <div class="grid">
   <article>
-    {% if solicitud_obj %}
-      {% if solicitud_obj.evaluacion.resultado == 'FAVORABLE' %}
-        <header><strong>Dictamen Resolutivo: Aprobación de Financiamiento</strong></header>
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="solicitud_id" value="{{ solicitud_obj.id }}">
-          <input type="hidden" name="action" value="aprobar">
-          
-          {% for field in form_aprobar %}
-            <label>
-              {{ field.label }}
-              {{ field }}
-              {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
-            </label>
-          {% endfor %}
+    {% if solicitud_obj.evaluacion.resultado == 'FAVORABLE' %}
+      <header><strong>Dictamen Resolutivo: Aprobación de Financiamiento</strong></header>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="solicitud_id" value="{{ solicitud_obj.id }}">
+        <input type="hidden" name="action" value="aprobar">
+        
+        {% for field in form_aprobar %}
+          <label>
+            {{ field.label }}
+            {{ field }}
+            {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
+          </label>
+        {% endfor %}
 
-          <div class="actions" style="margin-top: 1rem;">
-            <button type="submit">Confirmar Aprobación</button>
-          </div>
-        </form>
+        <div class="actions" style="margin-top: 1rem;">
+          <a href="{% url 'creditos:resolver' %}" role="button" class="outline">Cancelar</a>
+          <button type="submit">Confirmar Aprobación</button>
+        </div>
+      </form>
 
-        <hr style="margin: 1.5rem 0;">
+      <hr style="margin: 1.5rem 0;">
 
-        <details>
-          <summary style="color: #991b1b; cursor: pointer;"><strong>Deseo rechazar esta solicitud</strong></summary>
-          <form method="post" style="margin-top: 0.75rem;">
-            {% csrf_token %}
-            <input type="hidden" name="solicitud_id" value="{{ solicitud_obj.id }}">
-            <input type="hidden" name="action" value="rechazar">
-            {% for field in form_rechazar %}
-              <label>
-                {{ field.label }}
-                {{ field }}
-                {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
-              </label>
-            {% endfor %}
-            <button type="submit" class="danger">Confirmar Rechazo Formal</button>
-          </form>
-        </details>
-      {% else %}
-        <header><strong>Dictamen Resolutivo: Rechazo de Solicitud</strong></header>
-        <article class="alert warning" style="margin-bottom: 1rem;">
-          El analista emitió dictamen técnico <strong>DESFAVORABLE</strong>. Por normativa bancaria prudencial, no procede la aprobación.
-        </article>
-        <form method="post">
+      <details>
+        <summary style="color: #991b1b; cursor: pointer;"><strong>Deseo rechazar esta solicitud</strong></summary>
+        <form method="post" style="margin-top: 0.75rem;">
           {% csrf_token %}
           <input type="hidden" name="solicitud_id" value="{{ solicitud_obj.id }}">
           <input type="hidden" name="action" value="rechazar">
-          
           {% for field in form_rechazar %}
             <label>
               {{ field.label }}
@@ -79,107 +55,130 @@
               {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
             </label>
           {% endfor %}
-
-          <div class="actions" style="margin-top: 1rem;">
-            <button type="submit" name="action" value="rechazar" class="danger">Confirmar Rechazo Formal</button>
-          </div>
+          <button type="submit" class="danger">Confirmar Rechazo Formal</button>
         </form>
-      {% endif %}
+      </details>
     {% else %}
-      <header><strong>Solicitudes Pendientes de Resolución</strong></header>
-      <p>Seleccione una solicitud evaluada del menú superior para revisar sus antecedentes y formalizar su aprobación o rechazo.</p>
-      
-      {% if solicitudes_pendientes %}
-        <figure>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Cliente</th>
-                <th>Monto</th>
-                <th>Dictamen</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for s in solicitudes_pendientes %}
-              <tr>
-                <td class="mono">#{{ s.id }}</td>
-                <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }}</td>
-                <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }}</td>
-                <td>
-                  <span class="badge badge-{% if s.evaluacion.resultado == 'FAVORABLE' %}aprobado{% else %}rechazado{% endif %}">
-                    {{ s.evaluacion.get_resultado_display }}
-                  </span>
-                </td>
-                <td>
-                  <a href="{% url 'creditos:resolver' %}?solicitud_id={{ s.id }}" role="button" class="outline">Examinar</a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </figure>
-      {% else %}
-        <p><small><em>No hay solicitudes pendientes de resolución en este momento.</em></small></p>
-      {% endif %}
+      <header><strong>Dictamen Resolutivo: Rechazo de Solicitud</strong></header>
+      <article class="alert warning" style="margin-bottom: 1rem;">
+        El analista emitió dictamen técnico <strong>DESFAVORABLE</strong>. Por normativa bancaria prudencial, no procede la aprobación.
+      </article>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="solicitud_id" value="{{ solicitud_obj.id }}">
+        <input type="hidden" name="action" value="rechazar">
+        
+        {% for field in form_rechazar %}
+          <label>
+            {{ field.label }}
+            {{ field }}
+            {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
+          </label>
+        {% endfor %}
+
+        <div class="actions" style="margin-top: 1rem;">
+          <a href="{% url 'creditos:resolver' %}" role="button" class="outline">Cancelar</a>
+          <button type="submit" name="action" value="rechazar" class="danger">Confirmar Rechazo Formal</button>
+        </div>
+      </form>
     {% endif %}
   </article>
 
   <article>
     <header><strong>Expediente, Garantías y Evaluación Técnica</strong></header>
-    {% if solicitud_obj %}
-      <p><strong>Cliente:</strong> {{ solicitud_obj.cliente.nombres }} {{ solicitud_obj.cliente.apellidos }} (<span class="mono">{{ solicitud_obj.cliente.ci }}</span>)</p>
-      <p><strong>Monto Solicitado:</strong> Bs. {{ solicitud_obj.monto_solicitado|floatformat:2 }} ({{ solicitud_obj.plazo_meses }} meses)</p>
-      <p><strong>Destino:</strong> {{ solicitud_obj.destino }}</p>
+    <p><strong>Cliente:</strong> {{ solicitud_obj.cliente.nombres }} {{ solicitud_obj.cliente.apellidos }} (<span class="mono">{{ solicitud_obj.cliente.ci }}</span>)</p>
+    <p><strong>Monto Solicitado:</strong> Bs. {{ solicitud_obj.monto_solicitado|floatformat:2 }} ({{ solicitud_obj.plazo_meses }} meses)</p>
+    <p><strong>Destino:</strong> {{ solicitud_obj.destino }}</p>
 
-      <hr>
-      <p style="margin-bottom: 0.5rem;"><strong>Garantías Registradas:</strong></p>
-      {% if solicitud_obj.garantias.all %}
-        <ul>
-          {% for g in solicitud_obj.garantias.all %}
-            <li>
-              <strong>{{ g.get_tipo_display }}:</strong> {{ g.descripcion }}
-              <br><small>Valor estimado: <strong>Bs. {{ g.valor|floatformat:2 }}</strong></small>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p><small><em>Sin garantías registradas para esta solicitud.</em></small></p>
-      {% endif %}
-
-      {% if buro %}
-        <hr>
-        <p style="margin-bottom: 0.5rem;"><strong>Central de Riesgos:</strong></p>
-        <p><strong>Score:</strong> {{ buro.score }} / 850 (Riesgo {{ buro.nivel_riesgo }})</p>
-        <p><strong>Deuda Externa:</strong> Bs. {{ buro.deuda_vigente|floatformat:2 }}</p>
-        <p><strong>Mora Activa:</strong> {% if buro.tiene_mora %}Sí{% else %}No{% endif %}</p>
-      {% endif %}
-
-      {% if solicitud_obj.evaluacion %}
-        <hr>
-        <p style="margin-bottom: 0.5rem;"><strong>Evaluación Técnica del Analista:</strong></p>
-        <p><strong>Ingresos Verificados:</strong> Bs. {{ solicitud_obj.evaluacion.ingresos|floatformat:2 }}</p>
-        <p><strong>Gastos Comprobados:</strong> Bs. {{ solicitud_obj.evaluacion.gastos|floatformat:2 }}</p>
-        <p><strong>Capacidad de Pago Disponible:</strong> Bs. {{ solicitud_obj.evaluacion.capacidad_pago|floatformat:2 }}</p>
-        {% if cuota_estimada %}
-        <p><strong>Cuota Estimada:</strong> Bs. {{ cuota_estimada|floatformat:2 }}</p>
-        {% endif %}
-        <p><strong>Nivel de Riesgo:</strong> {{ solicitud_obj.evaluacion.get_nivel_riesgo_display }}</p>
-        <p><strong>Dictamen Técnico:</strong> 
-          <span class="badge badge-{% if solicitud_obj.evaluacion.resultado == 'FAVORABLE' %}aprobado{% else %}rechazado{% endif %}">
-            {{ solicitud_obj.evaluacion.get_resultado_display }}
-          </span>
-        </p>
-        {% if solicitud_obj.evaluacion.observaciones %}
-          <p><small><strong>Observaciones:</strong> {{ solicitud_obj.evaluacion.observaciones }}</small></p>
-        {% endif %}
-      {% endif %}
+    <hr>
+    <p style="margin-bottom: 0.5rem;"><strong>Garantías Registradas:</strong></p>
+    {% if solicitud_obj.garantias.all %}
+      <ul>
+        {% for g in solicitud_obj.garantias.all %}
+          <li>
+            <strong>{{ g.get_tipo_display }}:</strong> {{ g.descripcion }}
+            <br><small>Valor estimado: <strong>Bs. {{ g.valor|floatformat:2 }}</strong></small>
+          </li>
+        {% endfor %}
+      </ul>
     {% else %}
-      <p>Seleccione una solicitud evaluada para visualizar el expediente completo del cliente, garantías asociadas, antecedentes del buró de riesgo y dictamen técnico del analista.</p>
+      <p><small><em>Sin garantías registradas para esta solicitud.</em></small></p>
+    {% endif %}
+
+    {% if buro %}
+      <hr>
+      <p style="margin-bottom: 0.5rem;"><strong>Central de Riesgos:</strong></p>
+      <p><strong>Score:</strong> {{ buro.score }} / 850 (Riesgo {{ buro.nivel_riesgo }})</p>
+      <p><strong>Deuda Externa:</strong> Bs. {{ buro.deuda_vigente|floatformat:2 }}</p>
+      <p><strong>Mora Activa:</strong> {% if buro.tiene_mora %}Sí{% else %}No{% endif %}</p>
+    {% endif %}
+
+    {% if solicitud_obj.evaluacion %}
+      <hr>
+      <p style="margin-bottom: 0.5rem;"><strong>Evaluación Técnica del Analista:</strong></p>
+      <p><strong>Ingresos Verificados:</strong> Bs. {{ solicitud_obj.evaluacion.ingresos|floatformat:2 }}</p>
+      <p><strong>Gastos Comprobados:</strong> Bs. {{ solicitud_obj.evaluacion.gastos|floatformat:2 }}</p>
+      <p><strong>Capacidad de Pago Disponible:</strong> Bs. {{ solicitud_obj.evaluacion.capacidad_pago|floatformat:2 }}</p>
+      {% if cuota_estimada %}
+      <p><strong>Cuota Estimada:</strong> Bs. {{ cuota_estimada|floatformat:2 }}</p>
+      {% endif %}
+      <p><strong>Nivel de Riesgo:</strong> {{ solicitud_obj.evaluacion.get_nivel_riesgo_display }}</p>
+      <p><strong>Dictamen Técnico:</strong> 
+        <span class="badge badge-{% if solicitud_obj.evaluacion.resultado == 'FAVORABLE' %}aprobado{% else %}rechazado{% endif %}">
+          {{ solicitud_obj.evaluacion.get_resultado_display }}
+        </span>
+      </p>
+      {% if solicitud_obj.evaluacion.observaciones %}
+        <p><small><strong>Observaciones:</strong> {{ solicitud_obj.evaluacion.observaciones }}</small></p>
+      {% endif %}
     {% endif %}
   </article>
 </div>
+
+{% else %}
+<article>
+  <header><strong>Solicitudes Evaluadas Pendientes de Resolución (Comité)</strong></header>
+
+  <figure style="margin-bottom: 0;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente (C.I.)</th>
+          <th>Monto / Plazo</th>
+          <th>Riesgo / Dictamen</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in solicitudes_pendientes %}
+        <tr>
+          <td class="mono">#{{ s.id }}</td>
+          <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }} (<span class="mono">{{ s.cliente.ci }}</span>)</td>
+          <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }} ({{ s.plazo_meses }} m.)</td>
+          <td>
+            <span class="badge">{{ s.evaluacion.get_nivel_riesgo_display }}</span>
+            <span class="badge badge-{% if s.evaluacion.resultado == 'FAVORABLE' %}aprobado{% else %}rechazado{% endif %}">
+              {{ s.evaluacion.get_resultado_display }}
+            </span>
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'solicitudes:detalle' s.pk %}" role="button" class="outline">Expediente</a>
+              <a href="{% url 'creditos:resolver' %}?solicitud_id={{ s.id }}" role="button">Resolver</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5">No hay solicitudes evaluadas pendientes de resolución en este momento.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+</article>
+{% endif %}
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {

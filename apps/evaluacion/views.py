@@ -56,27 +56,6 @@ class EvaluacionListView(RolRequiredMixin, ListView):
         riesgo = self.request.GET.get("riesgo", "").strip()
         resultado = self.request.GET.get("resultado", "").strip()
 
-        pendientes_qs = (
-            SolicitudCredito.objects.filter(
-                estado=SolicitudCredito.Estado.REGISTRADA,
-                evaluacion__isnull=True,
-            )
-            .select_related("cliente")
-            .annotate(
-                num_garantias=Count("garantias"),
-                suma_garantias=Sum("garantias__valor"),
-            )
-            .order_by("-fecha_solicitud", "-id")
-        )
-        context["total_por_evaluar"] = pendientes_qs.count()
-        if q:
-            pendientes_qs = pendientes_qs.filter(
-                Q(cliente__ci__icontains=q)
-                | Q(cliente__nombres__icontains=q)
-                | Q(cliente__apellidos__icontains=q)
-                | Q(id__icontains=q)
-            )
-        context["solicitudes_por_evaluar"] = pendientes_qs
         context["q"] = q
         context["selected_riesgo"] = riesgo
         context["riesgo_filtro"] = riesgo
@@ -200,6 +179,29 @@ class EvaluacionCreateView(RolRequiredMixin, CreateView):
             context["cuota_estimada"] = estimar_cuota_francesa(
                 sol.monto_solicitado, sol.plazo_meses
             )
+        else:
+            q_pend = self.request.GET.get("q_pend", "").strip()
+            pend_qs = (
+                SolicitudCredito.objects.filter(
+                    estado=SolicitudCredito.Estado.REGISTRADA,
+                    evaluacion__isnull=True,
+                )
+                .select_related("cliente")
+                .annotate(
+                    num_garantias=Count("garantias"),
+                    suma_garantias=Sum("garantias__valor"),
+                )
+                .order_by("-fecha_solicitud", "-id")
+            )
+            if q_pend:
+                pend_qs = pend_qs.filter(
+                    Q(cliente__ci__icontains=q_pend)
+                    | Q(cliente__nombres__icontains=q_pend)
+                    | Q(cliente__apellidos__icontains=q_pend)
+                    | Q(id__icontains=q_pend)
+                )
+            context["solicitudes_pendientes"] = pend_qs
+            context["q_pend"] = q_pend
         return context
 
     def post(self, request, *args, **kwargs):

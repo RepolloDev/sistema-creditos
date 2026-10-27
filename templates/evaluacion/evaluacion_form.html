@@ -3,28 +3,35 @@
 {% block page_title %}{{ titulo }}{% endblock %}
 
 {% block actions %}
+{% if solicitud_preseleccionada %}
+<a href="{% url 'evaluacion:crear' %}" role="button" class="outline">Cambiar Solicitud</a>
+{% endif %}
 <a href="{% url 'evaluacion:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 
 {% block content %}
+{% if solicitud_preseleccionada %}
 <div class="grid">
   <article>
     <form method="post">
       {% csrf_token %}
+      <input type="hidden" name="solicitud" value="{{ solicitud_preseleccionada.pk }}">
       {% if form.non_field_errors %}
         <p><mark>{{ form.non_field_errors|striptags }}</mark></p>
       {% endif %}
 
       {% for field in form %}
+        {% if field.name != "solicitud" %}
         <label>
           {{ field.label }}
           {{ field }}
           {% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}
         </label>
+        {% endif %}
       {% endfor %}
 
       <div class="actions">
-        <a href="{% url 'evaluacion:listado' %}" role="button" class="outline">Cancelar</a>
+        <a href="{% url 'evaluacion:crear' %}" role="button" class="outline">Cancelar</a>
         <button type="submit">{{ boton_texto }}</button>
       </div>
     </form>
@@ -32,52 +39,37 @@
 
   <article>
     <header><strong>Expediente, Garantías y Central de Riesgos</strong></header>
-    {% if solicitud_preseleccionada %}
-      <p><strong>Cliente:</strong> {{ solicitud_preseleccionada.cliente.nombres }} {{ solicitud_preseleccionada.cliente.apellidos }} ({{ solicitud_preseleccionada.cliente.ci }})</p>
-      <p><strong>Monto Solicitado:</strong> Bs. {{ solicitud_preseleccionada.monto_solicitado|floatformat:2 }} ({{ solicitud_preseleccionada.plazo_meses }} meses)</p>
-      <p><strong>Cuota Estimada:</strong> Bs. {{ cuota_estimada|floatformat:2 }}</p>
+    <p><strong>Cliente:</strong> {{ solicitud_preseleccionada.cliente.nombres }} {{ solicitud_preseleccionada.cliente.apellidos }} ({{ solicitud_preseleccionada.cliente.ci }})</p>
+    <p><strong>Monto Solicitado:</strong> Bs. {{ solicitud_preseleccionada.monto_solicitado|floatformat:2 }} ({{ solicitud_preseleccionada.plazo_meses }} meses)</p>
+    <p><strong>Cuota Estimada:</strong> Bs. {{ cuota_estimada|floatformat:2 }}</p>
 
-      <hr>
-      <p style="margin-bottom: 0.5rem;"><strong>Garantías Registradas:</strong></p>
-      {% if solicitud_preseleccionada.garantias.all %}
-        <ul>
-          {% for g in solicitud_preseleccionada.garantias.all %}
-            <li>
-              <strong>{{ g.get_tipo_display }}:</strong> {{ g.descripcion }}
-              <br><small>Valor estimado: <strong>Bs. {{ g.valor|floatformat:2 }}</strong></small>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p><small><em>Sin garantías registradas en esta solicitud.</em></small></p>
-      {% endif %}
-      <hr>
+    <hr>
+    <p style="margin-bottom: 0.5rem;"><strong>Garantías Registradas:</strong></p>
+    {% if solicitud_preseleccionada.garantias.all %}
+      <ul>
+        {% for g in solicitud_preseleccionada.garantias.all %}
+          <li>
+            <strong>{{ g.get_tipo_display }}:</strong> {{ g.descripcion }}
+            <br><small>Valor estimado: <strong>Bs. {{ g.valor|floatformat:2 }}</strong></small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p><small><em>Sin garantías registradas en esta solicitud.</em></small></p>
     {% endif %}
+    <hr>
     {% if buro %}
       <p style="margin-bottom: 0.5rem;"><strong>Central de Riesgos:</strong></p>
       <p><strong>Score:</strong> {{ buro.score }} / 850 (Riesgo {{ buro.nivel_riesgo }})</p>
       <p><strong>Deuda Externa:</strong> Bs. {{ buro.deuda_vigente|floatformat:2 }}</p>
       <p><strong>Mora Activa:</strong> {% if buro.tiene_mora %}Sí{% else %}No{% endif %}</p>
       <p><small>{{ buro.observaciones }}</small></p>
-    {% else %}
-      <p><small>Seleccione una solicitud para precargar antecedentes crediticios, garantías y consulta en central de riesgos.</small></p>
     {% endif %}
   </article>
 </div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    const sol = document.getElementById("id_solicitud");
-    if (sol) {
-      sol.addEventListener("change", function() {
-        if (this.value) {
-          window.location.href = "{% url 'evaluacion:crear' %}?solicitud_id=" + encodeURIComponent(this.value);
-        } else {
-          window.location.href = "{% url 'evaluacion:crear' %}";
-        }
-      });
-    }
-
     const ing = document.getElementById("id_ingresos");
     const gas = document.getElementById("id_gastos");
     const cap = document.getElementById("id_capacidad_pago");
@@ -93,4 +85,57 @@
     }
   });
 </script>
+
+{% else %}
+<article>
+  <header><strong>Seleccione la Solicitud Pendiente a Evaluar</strong></header>
+
+  <form method="get" class="search-bar">
+    <input type="search" name="q_pend" value="{{ q_pend }}" placeholder="Buscar por C.I., cliente o # solicitud...">
+    <button type="submit" class="outline">Buscar</button>
+  </form>
+
+  <figure style="margin-bottom: 0;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente (C.I.)</th>
+          <th>Monto / Plazo</th>
+          <th>Destino</th>
+          <th>Garantías</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in solicitudes_pendientes %}
+        <tr>
+          <td class="mono">#{{ s.id }}</td>
+          <td>{{ s.cliente.apellidos }}, {{ s.cliente.nombres }} (<span class="mono">{{ s.cliente.ci }}</span>)</td>
+          <td class="mono">Bs. {{ s.monto_solicitado|floatformat:2 }} ({{ s.plazo_meses }} m.)</td>
+          <td>{{ s.destino|truncatechars:35 }}</td>
+          <td>
+            {% if s.num_garantias > 0 %}
+              <span class="mono">{{ s.num_garantias }} — Bs. {{ s.suma_garantias|floatformat:2 }}</span>
+            {% else %}
+              <span class="badge">Sin garantías</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'solicitudes:detalle' s.pk %}" role="button" class="outline">Expediente</a>
+              <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" role="button">Evaluar</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">No hay solicitudes en estado REGISTRADA pendientes de evaluación{% if q_pend %} para "{{ q_pend }}"{% endif %}.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </figure>
+</article>
+{% endif %}
 {% endblock %}

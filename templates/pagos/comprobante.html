@@ -3,8 +3,11 @@
 {% block page_title %}Comprobante {{ pago.numero_recibo }}{% endblock %}
 
 {% block actions %}
-<button type="button" onclick="window.print()" class="outline">Imprimir</button>
+{% if request.user.rol == "CAJERO" and not request.user.is_superuser %}
+<a href="{% url 'creditos:cronograma' credito.pk %}" role="button" class="outline">Ver Cronograma</a>
+{% else %}
 <a href="{% url 'creditos:detalle' credito.pk %}" role="button" class="outline">Ir al Crédito</a>
+{% endif %}
 <a href="{% url 'pagos:listado' %}" role="button" class="outline">Volver</a>
 {% endblock %}
 

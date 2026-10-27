@@ -41,7 +41,14 @@
     <tbody>
       {% for item in lista_mora %}
       <tr>
-        <td><a href="{% url 'creditos:detalle' item.credito.pk %}"><span class="mono">{{ item.credito.numero_credito }}</span></a> — #{{ item.cuota.numero_cuota }}</td>
+        <td>
+          {% if request.user.rol == "CAJERO" and not request.user.is_superuser %}
+            <a href="{% url 'creditos:cronograma' item.credito.pk %}"><span class="mono">{{ item.credito.numero_credito }}</span></a>
+          {% else %}
+            <a href="{% url 'creditos:detalle' item.credito.pk %}"><span class="mono">{{ item.credito.numero_credito }}</span></a>
+          {% endif %}
+          — #{{ item.cuota.numero_cuota }}
+        </td>
         <td>{{ item.cliente.apellidos }}, {{ item.cliente.nombres }} (<span class="mono">{{ item.cliente.ci }}</span>)</td>
         <td>{{ item.cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
         <td>{{ item.dias_atraso }} días</td>

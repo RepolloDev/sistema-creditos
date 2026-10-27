@@ -52,45 +52,10 @@ class PagoListView(RolRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         q = self.request.GET.get("q", "").strip()
         forma = self.request.GET.get("forma_pago", "").strip()
-        q_cobro = self.request.GET.get("q_cobro", "").strip()
         context["q"] = q
-        context["q_cobro"] = q_cobro
         context["selected_forma"] = forma
         context["forma_filtro"] = forma
         context["formas_pago"] = Pago.FormaPago.choices
-        context["total_recaudado"] = (
-            Pago.objects.aggregate(s=Sum("monto"))["s"] or Decimal("0.00")
-        )
-
-        user = self.request.user
-        if user.is_superuser or user.rol in [Usuario.Rol.ADMINISTRADOR, Usuario.Rol.CAJERO]:
-            cobros_qs = (
-                Credito.objects.filter(
-                    estado__in=["VIGENTE", "EN_MORA"],
-                    cuotas__estado__in=["PENDIENTE", "VENCIDA"],
-                    cuotas__saldo_cuota__gt=0,
-                )
-                .select_related("solicitud__cliente")
-                .annotate(
-                    cuotas_impagas=Count(
-                        "cuotas",
-                        filter=Q(
-                            cuotas__estado__in=["PENDIENTE", "VENCIDA"],
-                            cuotas__saldo_cuota__gt=0,
-                        ),
-                    )
-                )
-                .distinct()
-                .order_by("-id")
-            )
-            if q_cobro:
-                cobros_qs = cobros_qs.filter(
-                    Q(numero_credito__icontains=q_cobro)
-                    | Q(solicitud__cliente__ci__icontains=q_cobro)
-                    | Q(solicitud__cliente__nombres__icontains=q_cobro)
-                    | Q(solicitud__cliente__apellidos__icontains=q_cobro)
-                )
-            context["creditos_por_cobrar"] = cobros_qs[:10]
         return context
 
 

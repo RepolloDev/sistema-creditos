@@ -11,71 +11,20 @@
 {% endblock %}
 
 {% block content %}
-{% if request.user.rol in "ADMINISTRADOR,CAJERO" or request.user.is_superuser %}
-<article style="margin-bottom: 1.5rem;">
-  <header style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-    <strong>Créditos Activos con Cuotas por Cobrar</strong>
-    <small>Seleccione un crédito para revisar sus cuotas y cobrar</small>
+<article>
+  <header>
+    <strong>Historial de Recibos Emitidos</strong>
   </header>
 
-  <form method="get" class="search-bar">
-    <input type="search" name="q_cobro" value="{{ q_cobro }}" placeholder="Buscar cliente por C.I., apellido o N° de crédito para cobrar...">
-    <button type="submit" class="outline">Buscar Crédito</button>
-  </form>
-
-  <figure style="margin-bottom: 0;">
-    <table>
-      <thead>
-        <tr>
-          <th>Crédito</th>
-          <th>Titular (C.I.)</th>
-          <th>Cuotas Pendientes</th>
-          <th>Saldo Capital</th>
-          <th>Estado</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for cr in creditos_por_cobrar %}
-        <tr>
-          <td class="mono"><a href="{% url 'creditos:detalle' cr.pk %}">{{ cr.numero_credito }}</a></td>
-          <td>{{ cr.solicitud.cliente.apellidos }}, {{ cr.solicitud.cliente.nombres }} (<span class="mono">{{ cr.solicitud.cliente.ci }}</span>)</td>
-          <td class="mono">{{ cr.cuotas_impagas }}</td>
-          <td class="mono">Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
-          <td><span class="badge badge-{{ cr.estado|lower }}">{{ cr.get_estado_display }}</span></td>
-          <td>
-            <div class="actions">
-              <a href="{% url 'creditos:detalle' cr.pk %}" role="button">Ver Cuotas / Pagar</a>
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="6">Sin créditos con cuotas pendientes{% if q_cobro %} para "{{ q_cobro }}"{% endif %}.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </figure>
-</article>
-{% endif %}
-
-<details open style="border: 1px solid #e5e7eb; padding: 1rem; border-radius: 2px; background: #fbfbfb;">
-  <summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.75rem;">
-    Historial de Recibos Emitidos — Total Recaudado: Bs. {{ total_recaudado|floatformat:2 }}
-  </summary>
-
-  <form method="get" style="margin-top: 0.75rem;">
-    <div class="grid">
-      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por recibo, C.I. o cliente...">
-      <select name="forma_pago">
-        <option value="">Todas las formas de pago</option>
-        {% for val, label in formas_pago %}
-        <option value="{{ val }}" {% if selected_forma == val %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="outline">Filtrar</button>
-    </div>
+  <form method="get" style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por recibo, C.I. o cliente..." style="flex: 2 1 240px; margin-bottom: 0;">
+    <select name="forma_pago" style="flex: 1 1 180px; margin-bottom: 0;">
+      <option value="">Todas las formas de pago</option>
+      {% for val, label in formas_pago %}
+      <option value="{{ val }}" {% if selected_forma == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="outline" style="width: auto; margin-bottom: 0; padding: 0 1.25rem;">Filtrar</button>
   </form>
 
   <figure style="margin-bottom: 0;">
@@ -94,7 +43,14 @@
         {% for p in pagos %}
         <tr>
           <td class="mono"><strong>{{ p.numero_recibo }}</strong></td>
-          <td><a href="{% url 'creditos:detalle' p.cuota.credito.pk %}">{{ p.cuota.credito.numero_credito }}</a> — Cuota #{{ p.cuota.numero_cuota }}</td>
+          <td>
+            {% if request.user.rol == "CAJERO" and not request.user.is_superuser %}
+              <a href="{% url 'creditos:cronograma' p.cuota.credito.pk %}">{{ p.cuota.credito.numero_credito }}</a>
+            {% else %}
+              <a href="{% url 'creditos:detalle' p.cuota.credito.pk %}">{{ p.cuota.credito.numero_credito }}</a>
+            {% endif %}
+            — Cuota #{{ p.cuota.numero_cuota }}
+          </td>
           <td>{{ p.cuota.credito.solicitud.cliente.apellidos }}, {{ p.cuota.credito.solicitud.cliente.nombres }} (<span class="mono">{{ p.cuota.credito.solicitud.cliente.ci }}</span>)</td>
           <td class="mono">Bs. {{ p.monto|floatformat:2 }}</td>
           <td>{{ p.get_forma_pago_display }}</td>
@@ -115,5 +71,5 @@
   </figure>
 
   {% include "includes/paginacion.html" %}
-</details>
+</article>
 {% endblock %}

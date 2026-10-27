@@ -71,17 +71,6 @@ class CreditoListView(RolRequiredMixin, ListView):
         context["count_en_mora"] = Credito.objects.filter(estado=Credito.Estado.EN_MORA).count()
         context["count_cancelado"] = Credito.objects.filter(estado=Credito.Estado.CANCELADO).count()
 
-        user = self.request.user
-        if user.is_superuser or user.rol in [Usuario.Rol.ADMINISTRADOR, Usuario.Rol.JEFE]:
-            context["solicitudes_evaluadas"] = (
-                SolicitudCredito.objects.filter(estado=SolicitudCredito.Estado.EN_EVALUACION)
-                .select_related("cliente", "evaluacion")
-                .annotate(
-                    num_garantias=Count("garantias"),
-                    suma_garantias=Sum("garantias__valor"),
-                )
-                .order_by("-fecha_solicitud", "-id")
-            )
         return context
 
 
@@ -401,7 +390,6 @@ class ContratoImpresionView(RolRequiredMixin, DetailView):
         Usuario.Rol.OFICIAL,
         Usuario.Rol.ANALISTA,
         Usuario.Rol.JEFE,
-        Usuario.Rol.CAJERO,
         Usuario.Rol.GERENTE,
     ]
     model = Credito

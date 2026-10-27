@@ -4,7 +4,7 @@
 
 {% block actions %}
 <a href="{% url 'creditos:cronograma' credito.pk %}" role="button" class="outline">Cronograma</a>
-{% if contrato %}
+{% if contrato and request.user.rol != "CAJERO" %}
 <a href="{% url 'creditos:contrato' credito.pk %}" role="button" class="outline" target="_blank">Imprimir Contrato</a>
 {% endif %}
 {% if credito.estado == 'VIGENTE' or credito.estado == 'EN_MORA' %}
@@ -46,7 +46,9 @@
       {% if contrato %}
         <span class="mono">{{ contrato.numero_contrato }}</span>
         <span class="badge badge-{{ contrato.estado|lower }}">{{ contrato.get_estado_display }}</span>
+        {% if request.user.rol != "CAJERO" %}
         <a href="{% url 'creditos:contrato' credito.pk %}" target="_blank" style="margin-left: 0.5rem; font-size: 0.85rem;">[Ver / Imprimir]</a>
+        {% endif %}
       {% else %}
         —
       {% endif %}

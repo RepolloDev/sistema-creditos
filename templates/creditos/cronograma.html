@@ -4,7 +4,11 @@
 
 {% block actions %}
 <button type="button" onclick="window.print()" class="outline">Imprimir</button>
+{% if request.user.rol == "CAJERO" and not request.user.is_superuser %}
+<a href="{% url 'creditos:listado' %}" role="button" class="outline">Volver a Cartera</a>
+{% else %}
 <a href="{% url 'creditos:detalle' credito.pk %}" role="button" class="outline">Volver</a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
