@@ -57,7 +57,7 @@
           </li>
           {% endif %}
 
-          {% if request.user.rol in "ADMINISTRADOR,GERENTE,JEFE" or request.user.is_superuser %}
+          {% if request.user.rol in "ADMINISTRADOR,GERENTE" or request.user.is_superuser %}
           <li>
             <a href="{% url 'creditos:reportes' %}" class="{% if request.user.rol == 'GERENTE' %}nav-featured{% endif %}" {% if '/creditos/reportes/' in request.path %}aria-current="page"{% endif %}>
               <span>Reportes</span>

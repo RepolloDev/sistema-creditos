@@ -453,10 +453,10 @@ class DesembolsarCreditoView(RolRequiredMixin, View):
 
 class ReportesView(RolRequiredMixin, TemplateView):
     """
-    CU14 / RF15: Dashboard gerencial de reportes de cartera, recaudación y mora (Actor: Gerente / Jefe).
+    CU14 / RF15: Dashboard gerencial de reportes de cartera, recaudación y mora (Actor: Gerente).
     """
 
-    roles_permitidos = [Usuario.Rol.GERENTE, Usuario.Rol.JEFE]
+    roles_permitidos = [Usuario.Rol.GERENTE]
     template_name = "creditos/reportes.html"
 
     def get_context_data(self, **kwargs):

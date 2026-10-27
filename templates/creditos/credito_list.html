@@ -6,7 +6,7 @@
 {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
 <a href="{% url 'creditos:resolver' %}" role="button">+ Resolver Solicitud Evaluada</a>
 {% endif %}
-{% if request.user.rol in "ADMINISTRADOR,GERENTE,JEFE" or request.user.is_superuser %}
+{% if request.user.rol in "ADMINISTRADOR,GERENTE" or request.user.is_superuser %}
 <a href="{% url 'creditos:reportes' %}" role="button" class="outline">Reportes</a>
 {% endif %}
 {% if request.user.rol in "ADMINISTRADOR,OFICIAL,ANALISTA,JEFE,GERENTE" or request.user.is_superuser %}

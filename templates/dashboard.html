@@ -15,7 +15,9 @@
   {% if request.user.rol == "JEFE" or request.user.is_superuser %}
   <a href="{% url 'creditos:resolver' %}" role="button">+ Resolver Solicitud</a>
   {% endif %}
+  {% if request.user.rol == "GERENTE" or request.user.is_superuser %}
   <a href="{% url 'creditos:reportes' %}" role="button" class="outline">Reportes de Cartera</a>
+  {% endif %}
 {% endif %}
 {% endblock %}
 
