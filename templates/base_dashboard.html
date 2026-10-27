@@ -13,33 +13,62 @@
 
           {% if request.user.rol in "ADMINISTRADOR,OFICIAL,ANALISTA,JEFE,CAJERO,GERENTE" or request.user.is_superuser %}
           <li class="menu-group-title">Originación</li>
-          <li><a href="{% url 'clientes:listado' %}" {% if '/clientes/' in request.path %}aria-current="page"{% endif %}>Clientes</a></li>
+          <li>
+            <a href="{% url 'clientes:listado' %}" {% if '/clientes/' in request.path %}aria-current="page"{% endif %}>
+              <span>Clientes</span>
+            </a>
+          </li>
           {% endif %}
 
           {% if request.user.rol in "ADMINISTRADOR,OFICIAL,ANALISTA,JEFE,GERENTE" or request.user.is_superuser %}
-          <li><a href="{% url 'solicitudes:listado' %}" {% if '/solicitudes/' in request.path %}aria-current="page"{% endif %}>Solicitudes</a></li>
+          <li>
+            <a href="{% url 'solicitudes:listado' %}" class="{% if request.user.rol == 'OFICIAL' %}nav-featured{% endif %}" {% if '/solicitudes/' in request.path %}aria-current="page"{% endif %}>
+              <span>Solicitudes</span>
+              {% if request.user.rol == 'OFICIAL' %}<span class="role-pill">Oficial</span>{% endif %}
+            </a>
+          </li>
           {% endif %}
 
           {% if request.user.rol in "ADMINISTRADOR,ANALISTA,JEFE,GERENTE" or request.user.is_superuser %}
-          <li><a href="{% url 'evaluacion:listado' %}" {% if '/evaluacion/' in request.path %}aria-current="page"{% endif %}>Evaluaciones</a></li>
+          <li>
+            <a href="{% url 'evaluacion:listado' %}" class="{% if request.user.rol == 'ANALISTA' %}nav-featured{% endif %}" {% if '/evaluacion/' in request.path %}aria-current="page"{% endif %}>
+              <span>Evaluaciones</span>
+              {% if request.user.rol == 'ANALISTA' %}<span class="role-pill">Analista</span>{% endif %}
+            </a>
+          </li>
           {% endif %}
 
           {% if request.user.rol in "ADMINISTRADOR,JEFE,GERENTE,OFICIAL,ANALISTA,CAJERO" or request.user.is_superuser %}
           <li class="menu-group-title">Cartera y Cobranza</li>
-          <li><a href="{% url 'creditos:listado' %}" {% if '/creditos/' in request.path and '/creditos/reportes/' not in request.path %}aria-current="page"{% endif %}>Créditos</a></li>
+          <li>
+            <a href="{% url 'creditos:listado' %}" class="{% if request.user.rol == 'JEFE' %}nav-featured{% endif %}" {% if '/creditos/' in request.path and '/creditos/reportes/' not in request.path %}aria-current="page"{% endif %}>
+              <span>Créditos</span>
+              {% if request.user.rol == 'JEFE' %}<span class="role-pill">Jefe</span>{% endif %}
+            </a>
+          </li>
           {% endif %}
 
           {% if request.user.rol in "ADMINISTRADOR,CAJERO,JEFE,GERENTE" or request.user.is_superuser %}
-          <li><a href="{% url 'pagos:listado' %}" {% if '/pagos/' in request.path %}aria-current="page"{% endif %}>Pagos y Mora</a></li>
+          <li>
+            <a href="{% url 'pagos:listado' %}" class="{% if request.user.rol == 'CAJERO' %}nav-featured{% endif %}" {% if '/pagos/' in request.path %}aria-current="page"{% endif %}>
+              <span>Pagos y Mora</span>
+              {% if request.user.rol == 'CAJERO' %}<span class="role-pill">Cajero</span>{% endif %}
+            </a>
+          </li>
           {% endif %}
 
           {% if request.user.rol in "ADMINISTRADOR,GERENTE,JEFE" or request.user.is_superuser %}
-          <li><a href="{% url 'creditos:reportes' %}" {% if '/creditos/reportes/' in request.path %}aria-current="page"{% endif %}>Reportes</a></li>
+          <li>
+            <a href="{% url 'creditos:reportes' %}" class="{% if request.user.rol == 'GERENTE' %}nav-featured{% endif %}" {% if '/creditos/reportes/' in request.path %}aria-current="page"{% endif %}>
+              <span>Reportes</span>
+              {% if request.user.rol == 'GERENTE' %}<span class="role-pill">Gerente</span>{% endif %}
+            </a>
+          </li>
           {% endif %}
 
           {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
           <li class="menu-group-title">Sistema</li>
-          <li><a href="{% url 'usuarios:usuario_list' %}" {% if '/usuarios/' in request.path and '/usuarios/dashboard/' not in request.path %}aria-current="page"{% endif %}>Usuarios y Auditoría</a></li>
+          <li><a href="{% url 'usuarios:usuario_list' %}" {% if '/usuarios/' in request.path and '/usuarios/dashboard/' not in request.path %}aria-current="page"{% endif %}><span>Usuarios y Auditoría</span></a></li>
           {% endif %}
         </ul>
       </nav>
