@@ -50,7 +50,7 @@ def round_cur(val) -> Decimal:
 
 
 def calcular_cuota_francesa(
-    monto: Decimal, tasa_anual: Decimal, meses: int
+    monto: Decimal, tasa_anual: Decimal, meses: int, dias_desfase: int = -60
 ) -> tuple[Decimal, list[dict]]:
     """
     Calcula cronograma de amortización francesa exacta (Sección 10.1.2).
@@ -79,8 +79,8 @@ def calcular_cuota_francesa(
             cuota_periodo = cuota_fija
 
         vencimiento = hoy + timedelta(
-            days=30 * (k - 1) - 60
-        )  # Fechas escalonadas para probar mora/pasados
+            days=30 * (k - 1) + dias_desfase
+        )
 
         cronograma.append(
             {
@@ -508,9 +508,24 @@ def seed_solicitudes_y_prestamos(clientes):
             },
         )
 
-        # 4. Crear Crédito
+        # 4. Crear Crédito con desfase temporal adaptado a cada estado para testing realista
+        # APROBADO: recién aprobado, primer vencimiento a 30 días en el futuro
+        # VIGENTE: desembolsado hace 60 días, 2 cuotas pagadas a tiempo, próxima cuota por vencer en 30 días
+        # EN_MORA: desembolsado hace 90 días, 1 o 2 cuotas vencidas (15 a 65 días de atraso) para probar módulo de control de mora
+        # CANCELADO: amortizado en su totalidad en el pasado
+        if estado_cred == Credito.Estado.APROBADO:
+            dias_desfase = 30
+        elif estado_cred == Credito.Estado.VIGENTE:
+            dias_desfase = -60
+        elif estado_cred == Credito.Estado.EN_MORA:
+            # Desfases variados para tener mora temprana (10-25 días), mora media (30-45 días) y mora severa (60-90 días)
+            desfases_mora = [-15, -28, -45, -62, -78, -90]
+            dias_desfase = desfases_mora[(idx - 1) % len(desfases_mora)]
+        else: # CANCELADO
+            dias_desfase = -180
+
         num_credito = f"CRE-2026-{idx:04d}"
-        cuota_fija, cronograma = calcular_cuota_francesa(monto, tasa_anual, plazo)
+        cuota_fija, cronograma = calcular_cuota_francesa(monto, tasa_anual, plazo, dias_desfase=dias_desfase)
 
         credito, _ = Credito.objects.get_or_create(
             numero_credito=num_credito,
@@ -572,6 +587,7 @@ def seed_solicitudes_y_prestamos(clientes):
             )
 
         # 8. Generar Pagos según el estado del crédito
+        hoy = date.today()
         if estado_cred == Credito.Estado.CANCELADO:
             # Todas las cuotas pagadas
             for c_obj in cuotas_objs:
@@ -587,27 +603,33 @@ def seed_solicitudes_y_prestamos(clientes):
                     },
                 )
         elif estado_cred == Credito.Estado.VIGENTE:
-            # 1 o 2 cuotas pagadas
-            for c_obj in cuotas_objs[:2]:
-                c_obj.saldo_cuota = Decimal("0.00")
-                c_obj.estado = Cuota.Estado.PAGADA
-                c_obj.save()
-                Pago.objects.get_or_create(
-                    cuota=c_obj,
-                    defaults={
-                        "monto": c_obj.monto_cuota,
-                        "forma_pago": Pago.FormaPago.DEPOSITO,
-                        "numero_recibo": f"REC-VIG-{c_obj.id:06d}",
-                    },
-                )
-            # Reducir saldo capital proporcional
-            credito.saldo_capital = round_cur(credito.monto_aprobado * Decimal("0.75"))
+            # Amortizar cuotas pasadas para mantenerlo al día
+            for c_obj in cuotas_objs:
+                if c_obj.fecha_vencimiento <= hoy:
+                    c_obj.saldo_cuota = Decimal("0.00")
+                    c_obj.estado = Cuota.Estado.PAGADA
+                    c_obj.save()
+                    Pago.objects.get_or_create(
+                        cuota=c_obj,
+                        defaults={
+                            "monto": c_obj.monto_cuota,
+                            "forma_pago": Pago.FormaPago.DEPOSITO,
+                            "numero_recibo": f"REC-VIG-{c_obj.id:06d}",
+                        },
+                    )
+            # Reducir saldo capital proporcional a las cuotas restantes
+            cuotas_restantes = [c for c in cuotas_objs if c.estado != Cuota.Estado.PAGADA]
+            credito.saldo_capital = round_cur(sum(c.capital for c in cuotas_restantes))
             credito.save()
         elif estado_cred == Credito.Estado.EN_MORA:
-            # Cuotas vencidas sin pagar
-            for c_obj in cuotas_objs[:2]:
-                c_obj.estado = Cuota.Estado.VENCIDA
-                c_obj.save()
+            # Marcar cuotas vencidas cuya fecha_vencimiento < hoy
+            for c_obj in cuotas_objs:
+                if c_obj.fecha_vencimiento < hoy:
+                    c_obj.estado = Cuota.Estado.VENCIDA
+                    c_obj.save()
+                else:
+                    c_obj.estado = Cuota.Estado.PENDIENTE
+                    c_obj.save()
 
         total_prestamos += 1
 
