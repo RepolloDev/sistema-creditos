@@ -3,10 +3,34 @@
 {% block page_title %}Reportes de Cartera y Mora{% endblock %}
 
 {% block actions %}
-<button type="button" onclick="window.print()" class="outline">Imprimir</button>
+<button type="button" onclick="window.print()" class="outline">
+  <i data-lucide="printer"></i> Imprimir Reporte
+</button>
 {% endblock %}
 
 {% block content %}
+<div class="print-only" style="display: none; margin-bottom: 1.25rem; border-bottom: 2px solid #000; padding-bottom: 0.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <h3 style="margin: 0; font-size: 1.3rem;">BANCO VOLKSKAS</h3>
+      <p style="margin: 0; font-size: 0.85rem; color: #555;">Sistema de Créditos — Informe Ejecutivo de Cartera</p>
+    </div>
+    <div style="text-align: right; font-size: 0.78rem; color: #555;">
+      Generado por: <strong>{{ request.user.login }}</strong> ({{ request.user.get_rol_display }})<br>
+      Fecha de emisión: {% now "d/m/Y H:i" %}<br>
+      {% if estado_filtro %}Filtro: Estado <strong>{{ estado_filtro }}</strong>{% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+  @media print {
+    .print-only { display: block !important; }
+    form.no-print, .th-actions, .td-actions { display: none !important; }
+    .grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 0.5rem !important; }
+  }
+</style>
+
 <div class="grid">
   <article>
     <small>Total Colocado ({{ reporte.total_creditos }} créd.)</small>
@@ -26,15 +50,29 @@
   </article>
 </div>
 
-<form method="get">
-  <div class="grid">
-    <select name="estado">
-      <option value="">Todos los estados</option>
-      {% for val, label in estados %}
-      <option value="{{ val }}" {% if estado_filtro == val %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Filtrar</button>
+<form method="get" class="no-print" style="margin-bottom: 1.25rem;">
+  <div style="display: flex; gap: 0.6rem; align-items: flex-end; flex-wrap: wrap;">
+    <div style="flex: 1 1 240px; max-width: 320px;">
+      <label for="id_estado" style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem;">Estado de Crédito</label>
+      <select id="id_estado" name="estado" style="margin-bottom: 0; height: 2.3rem;">
+        <option value="">Todos los estados</option>
+        {% for val, label in estados %}
+        <option value="{{ val }}" {% if estado_filtro == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="submit" style="margin-bottom: 0; height: 2.3rem; padding: 0 1.2rem; display: inline-flex; align-items: center; justify-content: center;">
+        Filtrar
+      </button>
+    </div>
+    {% if estado_filtro %}
+    <div>
+      <a href="{% url 'creditos:reportes' %}" role="button" class="secondary outline" style="margin-bottom: 0; height: 2.3rem; padding: 0 1rem; display: inline-flex; align-items: center; justify-content: center;">
+        Limpiar
+      </a>
+    </div>
+    {% endif %}
   </div>
 </form>
 
@@ -47,7 +85,7 @@
         <th>Monto Aprobado</th>
         <th>Saldo Capital</th>
         <th>Estado</th>
-        <th></th>
+        <th class="th-actions no-print"></th>
       </tr>
     </thead>
     <tbody>
@@ -58,7 +96,7 @@
         <td class="mono">Bs. {{ cr.monto_aprobado|floatformat:2 }}</td>
         <td class="mono">Bs. {{ cr.saldo_capital|floatformat:2 }}</td>
         <td><span class="badge badge-{{ cr.estado|lower }}">{{ cr.get_estado_display }}</span></td>
-        <td>
+        <td class="td-actions no-print">
           <div class="actions">
             <a href="{% url 'creditos:detalle' cr.pk %}" role="button" class="outline">Ver</a>
           </div>
