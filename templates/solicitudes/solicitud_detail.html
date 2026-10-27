@@ -4,7 +4,9 @@
 
 {% block actions %}
 {% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
-<a href="{% url 'solicitudes:garantia_crear' solicitud.pk %}" role="button" class="outline">+ Garantía</a>
+  {% if not credito and solicitud.estado == 'REGISTRADA' or solicitud.estado == 'RECHAZADA' %}
+  <a href="{% url 'solicitudes:garantia_crear' solicitud.pk %}" role="button" class="outline">+ Garantía</a>
+  {% endif %}
 {% endif %}
 {% if request.user.rol in "ADMINISTRADOR,ANALISTA" or request.user.is_superuser %}
   {% if not evaluacion and solicitud.estado == 'REGISTRADA' %}
@@ -14,6 +16,11 @@
 {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
   {% if solicitud.estado == 'EN_EVALUACION' %}
   <a href="{% url 'creditos:resolver' %}?solicitud_id={{ solicitud.pk }}" role="button">Resolver en Comité</a>
+  {% endif %}
+{% endif %}
+{% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
+  {% if not credito and solicitud.estado == 'REGISTRADA' or solicitud.estado == 'RECHAZADA' %}
+  <a href="{% url 'solicitudes:editar' solicitud.pk %}" role="button" class="outline">Editar Solicitud</a>
   {% endif %}
 {% endif %}
 {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
@@ -101,12 +108,17 @@
         <td>Bs. {{ g.valor|floatformat:2 }}</td>
         <td>{{ g.get_estado_display }}</td>
         <td>
-          {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
-          <form method="post" action="{% url 'solicitudes:garantia_eliminar' g.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="outline danger">Quitar</button>
-          </form>
-          {% endif %}
+          <div class="actions">
+            {% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
+              {% if not credito and solicitud.estado == 'REGISTRADA' or solicitud.estado == 'RECHAZADA' %}
+              <a href="{% url 'solicitudes:garantia_editar' g.pk %}" role="button" class="outline">Editar</a>
+              <form method="post" action="{% url 'solicitudes:garantia_eliminar' g.pk %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="outline danger">Quitar</button>
+              </form>
+              {% endif %}
+            {% endif %}
+          </div>
         </td>
       </tr>
       {% empty %}

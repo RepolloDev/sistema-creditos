@@ -1,6 +1,6 @@
 {% extends "base_dashboard.html" %}
 
-{% block page_title %}Registrar Garantía (Solicitud #{{ solicitud.id }}){% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
 
 {% block actions %}
 <a href="{% url 'solicitudes:detalle' solicitud.pk %}" role="button" class="outline">Volver</a>
@@ -21,7 +21,7 @@
 
     <div class="actions">
       <a href="{% url 'solicitudes:detalle' solicitud.pk %}" role="button" class="outline">Cancelar</a>
-      <button type="submit">Guardar Garantía</button>
+      <button type="submit">{{ boton_texto }}</button>
     </div>
   </form>
 </article>

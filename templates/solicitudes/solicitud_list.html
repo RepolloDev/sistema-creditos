@@ -62,6 +62,11 @@
               <a href="{% url 'creditos:resolver' %}?solicitud_id={{ s.pk }}" role="button">Resolver</a>
               {% endif %}
             {% endif %}
+            {% if request.user.rol in "ADMINISTRADOR,OFICIAL" or request.user.is_superuser %}
+              {% if not s.credito and s.estado == 'REGISTRADA' or s.estado == 'RECHAZADA' %}
+              <a href="{% url 'solicitudes:editar' s.pk %}" role="button" class="outline">Editar</a>
+              {% endif %}
+            {% endif %}
             {% if request.user.rol == "ADMINISTRADOR" or request.user.is_superuser %}
             <a href="{% url 'solicitudes:eliminar' s.pk %}" role="button" class="outline danger">Eliminar</a>
             {% endif %}
