@@ -120,7 +120,7 @@
         <td><span class="badge badge-{{ cr.estado|lower }}">{{ cr.get_estado_display }}</span></td>
         <td>
           <div class="actions">
-            {% if cr.estado == 'APROBADO' and request.user.rol in "ADMINISTRADOR,OFICIAL,JEFE" %}
+            {% if cr.estado == 'APROBADO' and request.user.rol in "ADMINISTRADOR,JEFE" %}
               <a href="{% url 'creditos:detalle' cr.pk %}" role="button">
                 {% if cr.contrato and cr.contrato.estado == 'GENERADO' %}Firmar / Desembolsar{% else %}Desembolsar{% endif %}
               </a>

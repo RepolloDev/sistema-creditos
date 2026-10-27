@@ -366,7 +366,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             from evaluacion.models import EvaluacionCredito
             context["evaluaciones_realizadas"] = EvaluacionCredito.objects.count()
 
-        if rol in [Usuario.Rol.OFICIAL, Usuario.Rol.JEFE]:
+        if rol == Usuario.Rol.JEFE or is_admin:
             context["creditos_por_desembolsar"] = Credito.objects.filter(estado="APROBADO").count()
 
         if puede_ver_cartera:

@@ -430,10 +430,10 @@ class ContratoImpresionView(RolRequiredMixin, DetailView):
 
 class FirmarContratoView(RolRequiredMixin, View):
     """
-    CU09 / RN05: Suscripción y firma del contrato previa al desembolso (Actor: Oficial / Jefe).
+    CU09 / RN05: Suscripción y firma del contrato previa al desembolso (Actor: Jefe de Créditos / Admin).
     """
 
-    roles_permitidos = [Usuario.Rol.OFICIAL, Usuario.Rol.JEFE]
+    roles_permitidos = [Usuario.Rol.JEFE]
 
     def post(self, request, pk):
         credito = get_object_or_404(Credito, pk=pk)
@@ -447,10 +447,10 @@ class FirmarContratoView(RolRequiredMixin, View):
 
 class DesembolsarCreditoView(RolRequiredMixin, View):
     """
-    CU11 / RF12: Ejecución y confirmación de desembolso con el Core Bancario (Actor: Oficial / Jefe).
+    CU11 / RF12: Ejecución y confirmación de desembolso con el Core Bancario (Actor: Jefe de Créditos / Admin).
     """
 
-    roles_permitidos = [Usuario.Rol.OFICIAL, Usuario.Rol.JEFE]
+    roles_permitidos = [Usuario.Rol.JEFE]
 
     def post(self, request, pk):
         credito = get_object_or_404(Credito, pk=pk)

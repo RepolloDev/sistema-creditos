@@ -7,13 +7,13 @@
   <a href="{% url 'clientes:crear' %}" role="button" class="outline">+ Cliente</a>
   <a href="{% url 'solicitudes:crear' %}" role="button">+ Solicitud</a>
 {% elif request.user.rol == "ANALISTA" %}
-  <a href="{% url 'evaluacion:listado' %}" role="button">Ver Pendientes de Evaluar</a>
+  <a href="{% url 'evaluacion:crear' %}" role="button">+ Nueva Evaluación</a>
 {% elif request.user.rol == "CAJERO" %}
-  <a href="{% url 'creditos:listado' %}?estado=VIGENTE" role="button">Ver Créditos a Cobrar</a>
+  <a href="{% url 'pagos:registrar' %}" role="button">Cobrar Cuota</a>
   <a href="{% url 'pagos:control_mora' %}" role="button" class="outline">Control de Mora</a>
 {% elif request.user.rol in "JEFE,GERENTE" %}
   {% if request.user.rol == "JEFE" or request.user.is_superuser %}
-  <a href="{% url 'creditos:listado' %}" role="button">Bandeja de Comité y Cartera</a>
+  <a href="{% url 'creditos:resolver' %}" role="button">+ Resolver Solicitud</a>
   {% endif %}
   {% if request.user.rol == "GERENTE" or request.user.is_superuser %}
   <a href="{% url 'creditos:reportes' %}" role="button" class="outline">Reportes de Cartera</a>
@@ -44,7 +44,7 @@
   </article>
   {% endif %}
 
-  {% if request.user.rol in "OFICIAL,JEFE" %}
+  {% if request.user.rol in "ADMINISTRADOR,JEFE" or request.user.is_superuser %}
   <article>
     <small>Por Desembolsar</small>
     <h3>{{ creditos_por_desembolsar }}</h3>
@@ -98,7 +98,7 @@
             <div class="actions">
               {% if request.user.rol in "ADMINISTRADOR,JEFE" and s.estado == 'EN_EVALUACION' %}
                 <a href="{% url 'creditos:resolver' %}?solicitud_id={{ s.pk }}" role="button">Resolver</a>
-              {% elif request.user.rol in "ADMINISTRADOR,OFICIAL,JEFE" and s.credito and s.credito.estado == 'APROBADO' %}
+              {% elif request.user.rol in "ADMINISTRADOR,JEFE" and s.credito and s.credito.estado == 'APROBADO' %}
                 <a href="{% url 'creditos:detalle' s.credito.pk %}" role="button">Desembolsar</a>
               {% else %}
                 <a href="{% url 'solicitudes:detalle' s.pk %}" role="button" class="outline">Ver</a>
@@ -169,7 +169,7 @@
               <a href="{% url 'solicitudes:garantia_crear' s.pk %}" role="button">+ Garantía</a>
             {% elif request.user.rol == "ANALISTA" and s.estado == 'REGISTRADA' and not s.evaluacion %}
               <a href="{% url 'evaluacion:crear' %}?solicitud_id={{ s.pk }}" role="button">Evaluar</a>
-            {% elif request.user.rol == "OFICIAL" and s.credito and s.credito.estado == 'APROBADO' %}
+            {% elif request.user.rol in "ADMINISTRADOR,JEFE" and s.credito and s.credito.estado == 'APROBADO' %}
               <a href="{% url 'creditos:detalle' s.credito.pk %}" role="button">Desembolsar</a>
             {% else %}
               <a href="{% url 'solicitudes:detalle' s.pk %}" role="button" class="outline">Ver</a>
